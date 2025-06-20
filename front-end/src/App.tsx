@@ -1,17 +1,53 @@
-function App() {
+// App.tsx
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Link,
+  useLocation,
+} from "react-router-dom";
+
+import Setup from "./Setup";
+import Data from "./Data";
+
+function TabNav() {
+  const location = useLocation();
+  const isActive = (path: string) => location.pathname === path;
+
   return (
-    <>
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-blue-400">Tailwind Test</h1>
-            <p className="text-sm text-gray-300">This button should hover pink</p>
-            <button className="bg-pink-500 hover:bg-pink-600 px-4 py-2 rounded-lg shadow">
-              Click Me
-            </button>
-          </div>
-        </div>   
-    </>
-  )
+    <div className="flex gap-4 border-b mb-4 p-4">
+      <Link
+        to="/setup"
+        className={`px-4 py-2 border-b-2 ${
+          isActive("/setup") ? "border-pink-500 text-pink-500" : "border-transparent text-gray-500"
+        }`}
+      >
+        Setup
+      </Link>
+      <Link
+        to="/data"
+        className={`px-4 py-2 border-b-2 ${
+          isActive("/data") ? "border-pink-500 text-pink-500" : "border-transparent text-gray-500"
+        }`}
+      >
+        Data
+      </Link>
+    </div>
+  );
 }
 
-export default App
+function App() {
+  return (
+    <BrowserRouter>
+      <TabNav />
+      <Routes>
+        <Route path="/" element={<Navigate to="/setup" replace />} />
+        <Route path="/setup" element={<Setup />} />
+        <Route path="/data" element={<Data />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;

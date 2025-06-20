@@ -1,0 +1,13 @@
+{  
+  "main": "back-end/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm --prefix front-end run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "npm --prefix front-end run build",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^36.5.0",
+    "wait-on": "^8.0.3"
+  }
+}
