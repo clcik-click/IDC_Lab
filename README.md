@@ -1,23 +1,36 @@
-# IDC_Lab
-
 # Vite + React + TailwindCSS (Frontend) with Electron (Backend)
 
 ## 📦 Frontend Setup
-
-1. **Vite + React**
+   - Vite + React
    - Official Guide: [https://vite.dev/guide/](https://vite.dev/guide/)
    - Create project:
      ```bash
      npm create vite@latest
      ```
 
-2. **TailwindCSS with Vite**
+   - TailwindCSS with Vite
    - Installation Guide: [https://tailwindcss.com/docs/installation/using-vite](https://tailwindcss.com/docs/installation/using-vite)
-
 ---
 
 ## ⚙️ Backend Setup (Electron)
-
-1. **Install Electron in Root Folder**
+   - Install Electron in Root Folder
    ```bash
    npm install electron --save-dev
+   ```
+   
+## back-end folder
+   - Inside the back-end folder, create main.js
+   - Refer to IDC_LAB project for code
+
+## Update package.josn (root)
+   - Refer to IDC_LAB project for correct script and config setup
+
+## Install Helper Tools
+   ```bash
+   npm install --save-dev concurrently wait-on electron
+   ```
+
+## Run Development Mode
+   ```bash
+   npm run dev
+   ```
