@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FileItem, FolderKey } from "../types/FileItem";
 import FolderView from "../components/FolderView";
+import EditFileModal from "../components/EditFileModal";
 
 declare global {
   interface Window {
@@ -13,18 +14,15 @@ declare global {
 
 export default function Setup() {
   const [folders, setFolders] = useState<Record<FolderKey, FileItem[]>>({
-    A: [
-      { id: "file1", name: "Hoan_model.stl", owner: "Hoan" },
-      { id: "file2", name: "Cube.stl", owner: "Alice" },
-    ],
-    B: [{ id: "file3", name: "Rocket.stl", owner: "Bob" }],
+    A: [],
+    B: [],
     C: [],
   });
-  
+
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+
   useEffect(() => {
-    window.electronAPI.loadData().then((data) => {
-      setFolders(data);
-    });
+    window.electronAPI.loadData().then(setFolders);
   }, []);
 
   useEffect(() => {
@@ -40,14 +38,31 @@ export default function Setup() {
     e.dataTransfer.setData("text/plain", payload);
   };
 
-  const handleDropFile = (file: FileItem, from: FolderKey, to: FolderKey) => {
+  const handleDropFile = (
+    file: FileItem,
+    from: FolderKey,
+    to: FolderKey
+  ) => {
     if (from === to) return;
-
     setFolders((prev) => ({
       ...prev,
       [from]: prev[from].filter((f) => f.id !== file.id),
       [to]: [file, ...prev[to]],
     }));
+  };
+
+  const handleSaveMetadata = (updated: FileItem) => {
+    setFolders((prev) => {
+      const next = { ...prev };
+      for (const key in next) {
+        const folder = key as FolderKey;
+        next[folder] = next[folder].map((f) =>
+          f.id === updated.id ? updated : f
+        );
+      }
+      return next;
+    });
+    setSelectedFile(null);
   };
 
   return (
@@ -56,14 +71,25 @@ export default function Setup() {
         <FolderView
           key={key}
           title={
-            key === "A" ? "Queue (A)" : key === "B" ? "In Progress (B)" : "Done (C)"
+            key === "A"
+              ? "Queue (A)"
+              : key === "B"
+              ? "In Progress (B)"
+              : "Done (C)"
           }
           folderId={key}
           files={folders[key]}
           onDropFile={(file, from) => handleDropFile(file, from as FolderKey, key)}
           onDragStart={handleDragStart}
+          onClickFile={(file) => setSelectedFile(file)}
         />
       ))}
+
+      <EditFileModal
+        file={selectedFile}
+        onClose={() => setSelectedFile(null)}
+        onSave={handleSaveMetadata}
+      />
     </div>
   );
 }

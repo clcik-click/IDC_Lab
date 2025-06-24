@@ -6,6 +6,7 @@ interface FolderViewProps {
   folderId: FolderKey;
   onDropFile: (file: FileItem, from: FolderKey) => void;
   onDragStart: (e: React.DragEvent, file: FileItem, from: FolderKey) => void;
+  onClickFile: (file: FileItem) => void;
 }
 
 
@@ -15,6 +16,7 @@ export default function FolderView({
   folderId,
   onDropFile,
   onDragStart,
+  onClickFile,
 }: FolderViewProps) {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -36,6 +38,7 @@ export default function FolderView({
             key={file.id}
             draggable
             onDragStart={(e) => onDragStart(e, file, folderId)}
+            onClick={() => onClickFile(file)}
             className="p-2 mb-2 bg-white rounded shadow text-sm cursor-move"
           >
             {file.name} <span className="text-gray-500 text-xs">({file.owner})</span>
