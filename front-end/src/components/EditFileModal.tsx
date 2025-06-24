@@ -1,6 +1,6 @@
-// components/EditFileModal.tsx
 import type { FileItem } from "../types/FileItem";
 import { useState, useEffect } from "react";
+import { Pencil, X } from "lucide-react"; // optional icons if you use lucide
 
 interface EditFileModalProps {
   file: FileItem | null;
@@ -18,37 +18,45 @@ export default function EditFileModal({ file, onClose, onSave }: EditFileModalPr
   if (!form) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 className="text-xl font-semibold mb-4">Edit File</h2>
+    <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-xl shadow-lg w-[400px] space-y-4 relative">
+        <button onClick={onClose} className="absolute top-2 right-2 text-gray-500 hover:text-black">
+          <X size={20} />
+        </button>
 
-        <label className="block mb-2">
-          <span className="text-sm text-gray-600">File Name</span>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full border px-2 py-1 rounded"
-          />
-        </label>
+        <h2 className="text-2xl font-semibold flex items-center gap-2">
+          <Pencil size={20} /> Edit Metadata
+        </h2>
 
-        <label className="block mb-2">
-          <span className="text-sm text-gray-600">Owner</span>
-          <input
-            type="text"
-            value={form.owner}
-            onChange={(e) => setForm({ ...form, owner: e.target.value })}
-            className="w-full border px-2 py-1 rounded"
-          />
-        </label>
+        {[
+          ["File Name", "name"],
+          ["Owner", "owner"],
+          ["Class", "class"],
+          ["Priority", "priority"],
+          ["Notes", "notes"],
+        ].map(([label, key]) => (
+          <label key={key} className="block text-sm">
+            <span className="text-gray-600">{label}</span>
+            <input
+              type={key === "priority" ? "number" : "text"}
+              value={(form as any)[key] ?? ""}
+              onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+              className="w-full mt-1 border rounded px-2 py-1"
+            />
+          </label>
+        ))}
 
-        <div className="flex justify-end mt-4 gap-2">
-          <button onClick={onClose} className="px-4 py-1 bg-gray-300 rounded">
+        <p className="text-sm text-gray-500">
+             Received: {new Date(form.dateReceived).toLocaleString()}
+        </p>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button onClick={onClose} className="px-4 py-1 rounded bg-gray-300 hover:bg-gray-400">
             Cancel
           </button>
           <button
             onClick={() => form && onSave(form)}
-            className="px-4 py-1 bg-blue-500 text-white rounded"
+            className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Save
           </button>

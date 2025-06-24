@@ -8,6 +8,16 @@ declare global {
     electronAPI: {
       loadData: () => Promise<Record<FolderKey, FileItem[]>>;
       saveData: (data: Record<FolderKey, FileItem[]>) => void;
+      pickFolder: () => Promise<string | null>;
+      saveConfig: (paths: Record<FolderKey, string>) => void;
+      loadConfig: () => Promise<Record<FolderKey, string>>;
+      scanFolders: (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>; // ✅ Add this line
+      moveFile: (params: {
+        name: string;
+        from: FolderKey;
+        to: FolderKey;
+        folderPaths: Record<FolderKey, string>;
+      }) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }
@@ -19,15 +29,50 @@ export default function Setup() {
     C: [],
   });
 
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [folderPaths, setFolderPaths] = useState<Record<FolderKey, string>>({
+    A: "",
+    B: "",
+    C: "",
+  });
 
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [configReady, setConfigReady]   = useState(false);
+
+  // Load config once
   useEffect(() => {
-    window.electronAPI.loadData().then(setFolders);
+    window.electronAPI.loadConfig().then((config) => {
+      setFolderPaths(config);
+      setConfigReady(true);
+    });
   }, []);
 
+  // After config is loaded AND complete, scan folders
+  useEffect(() => {
+    if (
+      configReady &&
+      folderPaths.A &&
+      folderPaths.B &&
+      folderPaths.C
+    ) {
+      window.electronAPI.scanFolders(folderPaths).then(setFolders);
+    }
+  }, [folderPaths, configReady]);
+  
+  // Save metadata on every folder change
   useEffect(() => {
     window.electronAPI.saveData(folders);
   }, [folders]);
+
+
+  // Folder picker logic
+  const handlePickFolder = async (key: FolderKey) => {
+    const selected = await window.electronAPI.pickFolder();
+    if (selected) {
+      const updated = { ...folderPaths, [key]: selected };
+      setFolderPaths(updated);
+      window.electronAPI.saveConfig(updated);
+    }
+  };
 
   const handleDragStart = (
     e: React.DragEvent,
@@ -38,17 +83,31 @@ export default function Setup() {
     e.dataTransfer.setData("text/plain", payload);
   };
 
-  const handleDropFile = (
+  const handleDropFile = async (
     file: FileItem,
     from: FolderKey,
     to: FolderKey
   ) => {
     if (from === to) return;
-    setFolders((prev) => ({
-      ...prev,
-      [from]: prev[from].filter((f) => f.id !== file.id),
-      [to]: [file, ...prev[to]],
-    }));
+
+    // Attempt to move the file
+    const result = await window.electronAPI.moveFile({
+      name: file.name,
+      from,
+      to,
+      folderPaths,
+    });
+
+    if (result.success) {
+      // Update metadata and UI
+      setFolders((prev) => ({
+        ...prev,
+        [from]: prev[from].filter((f) => f.id !== file.id),
+        [to]: [file, ...prev[to]],
+      }));
+    } else {
+      alert("❌ Failed to move file: " + result.error);
+    }
   };
 
   const handleSaveMetadata = (updated: FileItem) => {
@@ -66,25 +125,46 @@ export default function Setup() {
   };
 
   return (
-    <div className="flex gap-4 p-6">
-      {(["A", "B", "C"] as FolderKey[]).map((key) => (
-        <FolderView
-          key={key}
-          title={
-            key === "A"
-              ? "Queue (A)"
-              : key === "B"
-              ? "In Progress (B)"
-              : "Done (C)"
-          }
-          folderId={key}
-          files={folders[key]}
-          onDropFile={(file, from) => handleDropFile(file, from as FolderKey, key)}
-          onDragStart={handleDragStart}
-          onClickFile={(file) => setSelectedFile(file)}
-        />
-      ))}
+    <div className="p-6 space-y-6">
+      {/* Folder picker controls */}
+      <div className="flex gap-4">
+        {(["A", "B", "C"] as FolderKey[]).map((key) => (
+          <div key={key} className="space-y-1 text-sm max-w-[250px]">
+            <button
+              onClick={() => handlePickFolder(key)}
+              className="px-3 py-1 rounded bg-blue-600 text-white text-sm"
+            >
+              Select Folder {key}
+            </button>
+            <div className="text-gray-500 truncate">{folderPaths[key] || "Not set"}</div>
+          </div>
+        ))}
+      </div>
 
+      {/* Folder views */}
+      <div className="flex gap-4">
+        {(["A", "B", "C"] as FolderKey[]).map((key) => (
+          <FolderView
+            key={key}
+            title={
+              key === "A"
+                ? "Queue (A)"
+                : key === "B"
+                ? "In Progress (B)"
+                : "Done (C)"
+            }
+            folderId={key}
+            files={folders[key]}
+            onDropFile={(file, from) =>
+              handleDropFile(file, from as FolderKey, key)
+            }
+            onDragStart={handleDragStart}
+            onClickFile={(file) => setSelectedFile(file)}
+          />
+        ))}
+      </div>
+
+      {/* Metadata modal */}
       <EditFileModal
         file={selectedFile}
         onClose={() => setSelectedFile(null)}

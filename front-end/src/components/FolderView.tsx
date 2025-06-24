@@ -39,9 +39,16 @@ export default function FolderView({
             draggable
             onDragStart={(e) => onDragStart(e, file, folderId)}
             onClick={() => onClickFile(file)}
-            className="p-2 mb-2 bg-white rounded shadow text-sm cursor-move"
+            className="p-2 mb-2 bg-white rounded shadow text-sm cursor-pointer hover:bg-gray-50"
+            title={`Owner: ${file.owner || "?"}
+          Class: ${file.class || "?"}
+          Priority: ${file.priority ?? "-"}
+          Notes: ${file.notes || ""}`}
           >
-            {file.name} <span className="text-gray-500 text-xs">({file.owner})</span>
+            {file.name}
+            <span className="text-gray-500 text-xs block">
+              ({file.owner || "Unknown"})
+            </span>
           </li>
         ))}
       </ul>
