@@ -1,6 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FileItem, FolderKey } from "../types/FileItem";
 import FolderView from "../components/FolderView";
+
+declare global {
+  interface Window {
+    electronAPI: {
+      loadData: () => Promise<Record<FolderKey, FileItem[]>>;
+      saveData: (data: Record<FolderKey, FileItem[]>) => void;
+    };
+  }
+}
 
 export default function Setup() {
   const [folders, setFolders] = useState<Record<FolderKey, FileItem[]>>({
@@ -11,6 +20,16 @@ export default function Setup() {
     B: [{ id: "file3", name: "Rocket.stl", owner: "Bob" }],
     C: [],
   });
+  
+  useEffect(() => {
+    window.electronAPI.loadData().then((data) => {
+      setFolders(data);
+    });
+  }, []);
+
+  useEffect(() => {
+    window.electronAPI.saveData(folders);
+  }, [folders]);
 
   const handleDragStart = (
     e: React.DragEvent,
