@@ -8,8 +8,8 @@ import {
   useLocation,
 } from "react-router-dom";
 
-import Setup from "./Setup";
-import Data from "./Data";
+import Setup from "./pages/Setup";
+import Data from "./pages/Data";
 
 function TabNav() {
   const location = useLocation();
