@@ -9,7 +9,6 @@ interface FolderViewProps {
   onClickFile: (file: FileItem) => void;
 }
 
-
 export default function FolderView({
   title,
   files,
@@ -18,6 +17,7 @@ export default function FolderView({
   onDragStart,
   onClickFile,
 }: FolderViewProps) {
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const data = e.dataTransfer.getData("text/plain");
@@ -40,11 +40,12 @@ export default function FolderView({
             onDragStart={(e) => onDragStart(e, file, folderId)}
             onClick={() => onClickFile(file)}
             className="p-2 mb-2 bg-white rounded shadow text-sm cursor-pointer hover:bg-gray-50"
-            title={`Owner: ${file.owner || "?"}
-          Class: ${file.class || "?"}
-          Priority: ${file.priority ?? "-"}
-          Notes: ${file.notes || ""}`}
-          >
+            title={`
+              Owner: ${file.owner || "?"}
+              Class: ${file.class || "?"}
+              Priority: ${file.priority ?? "-"}
+              Notes: ${file.notes || ""}`}
+            >
             {file.name}
             <span className="text-gray-500 text-xs block">
               ({file.owner || "Unknown"})

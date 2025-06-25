@@ -3,16 +3,24 @@ import type { FileItem, FolderKey } from "../types/FileItem";
 import FolderView from "../components/FolderView";
 import EditFileModal from "../components/EditFileModal";
 
+// Mirror IPC routes defined in preload.js in the Electron backend
 declare global {
   interface Window {
     electronAPI: {
-      loadData: () => Promise<Record<FolderKey, FileItem[]>>;
-      saveData: (data: Record<FolderKey, FileItem[]>) => void;
-      pickFolder: () => Promise<string | null>;
-      saveConfig: (paths: Record<FolderKey, string>) => void;
-      loadConfig: () => Promise<Record<FolderKey, string>>;
-      scanFolders: (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>; // ✅ Add this line
-      moveFile: (params: {
+      // loads saved file metadata
+      loadData:     () => Promise<Record<FolderKey, FileItem[]>>;
+      // saves file metadata
+      saveData:     (data: Record<FolderKey, FileItem[]>) => void;
+      // opens folder picker dialog
+      pickFolder:   () => Promise<string | null>;
+      // saves folder paths
+      saveConfig:   (paths: Record<FolderKey, string>) => void;
+      // loads folder paths
+      loadConfig:   () => Promise<Record<FolderKey, string>>;
+      // scans the folders and returns their .stl file contents
+      scanFolders:  (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>; 
+      // moves a file from one folder to another
+      moveFile:     (params: {
         name: string;
         from: FolderKey;
         to: FolderKey;
@@ -23,18 +31,9 @@ declare global {
 }
 
 export default function Setup() {
-  const [folders, setFolders] = useState<Record<FolderKey, FileItem[]>>({
-    A: [],
-    B: [],
-    C: [],
-  });
-
-  const [folderPaths, setFolderPaths] = useState<Record<FolderKey, string>>({
-    A: "",
-    B: "",
-    C: "",
-  });
-
+  const [folders, setFolders] = useState<Record<FolderKey, FileItem[]>>({ A: [], B: [], C: [], });
+  const [folderPaths, setFolderPaths]   = useState<Record<FolderKey, string>>({ A: "", B: "", C: "", });
+  
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [configReady, setConfigReady]   = useState(false);
 
@@ -49,9 +48,9 @@ export default function Setup() {
   // After config is loaded AND complete, scan folders
   useEffect(() => {
     if (
-      configReady &&
-      folderPaths.A &&
-      folderPaths.B &&
+      // configReady &&
+      folderPaths.A ||
+      folderPaths.B ||
       folderPaths.C
     ) {
       window.electronAPI.scanFolders(folderPaths).then(setFolders);
@@ -63,8 +62,7 @@ export default function Setup() {
     window.electronAPI.saveData(folders);
   }, [folders]);
 
-
-  // Folder picker logic
+  // Select folder paths
   const handlePickFolder = async (key: FolderKey) => {
     const selected = await window.electronAPI.pickFolder();
     if (selected) {
@@ -74,6 +72,7 @@ export default function Setup() {
     }
   };
 
+  // Drag & Drop features
   const handleDragStart = (
     e: React.DragEvent,
     file: FileItem,
@@ -110,6 +109,7 @@ export default function Setup() {
     }
   };
 
+  //
   const handleSaveMetadata = (updated: FileItem) => {
     setFolders((prev) => {
       const next = { ...prev };
@@ -166,9 +166,9 @@ export default function Setup() {
 
       {/* Metadata modal */}
       <EditFileModal
-        file={selectedFile}
-        onClose={() => setSelectedFile(null)}
-        onSave={handleSaveMetadata}
+        file    ={selectedFile}
+        onClose ={() => setSelectedFile(null)}
+        onSave  ={handleSaveMetadata}
       />
     </div>
   );
