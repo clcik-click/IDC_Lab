@@ -13,27 +13,23 @@ function createWindow() {
     height: 700,
     webPreferences: {
       contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-      webSecurity: !isDev,
-      enableRemoteModule: false,
       preload: path.join(__dirname, "preload.js"),
+      sandbox: false,           // ✅ Needed to access file paths
+      nodeIntegration: false,   // ✅ Recommended for security
+      devTools: true,
     },
   });
 
-  // if (isDev) {
-  //   win.loadURL("http://localhost:5173");
-  //   win.webContents.openDevTools();
-  // } else {
-  //   win.loadFile(path.join(__dirname, "../front-end/dist/index.html"));
-  // }
-    if (true || isDev) { // 👈 Force this to true
-    win.loadFile(path.join(__dirname, "../front-end/dist/index.html"));
-  } else {
+  if (isDev) {
+    console.log("🔧 Running in development mode");
     win.loadURL("http://localhost:5173");
+    win.webContents.openDevTools();
+  } else {
+    console.log("🚀 Running in production mode");
+    win.loadFile(path.join(__dirname, "../front-end/dist/index.html"));
   }
-
 }
+
 
 // ✅ IPC handlers
 ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
@@ -161,5 +157,20 @@ function readSTLFilesFromFolder(folderPath) {
 }
 
 
+ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, folderPaths }) => {
+  try {
+    const destDir = folderPaths[toFolder];
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+    const destPath = path.join(destDir, name);
+    const data = Buffer.from(buffer);  // Reconstruct from array
+    fs.writeFileSync(destPath, data);
+    
+    return { success: true };
+  } catch (err) {
+    console.error("❌ Failed to import buffer:", err);
+    return { success: false, error: err.message };
+  }
+});
 
 app.whenReady().then(createWindow);

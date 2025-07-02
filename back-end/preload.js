@@ -11,4 +11,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   moveFile:     (payload) => ipcRenderer.invoke("move-file", payload),
   importFile:   (params) => ipcRenderer.invoke("import-file", params),
 
+  importFileBuffer: (params) => ipcRenderer.invoke("import-file-buffer", params),
+  
 });

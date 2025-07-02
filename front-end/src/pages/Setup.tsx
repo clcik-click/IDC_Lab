@@ -3,40 +3,47 @@ import type { FileItem, FolderKey } from "../types/FileItem";
 import FolderView from "../components/FolderView";
 import EditFileModal from "../components/EditFileModal";
 
-// Mirror IPC routes defined in preload.js in the Electron backend
-declare global {
-  interface Window {
-    electronAPI: {
-      // loads saved file metadata
-      loadData:     () => Promise<Record<FolderKey, FileItem[]>>;
-      // saves file metadata
-      saveData:     (data: Record<FolderKey, FileItem[]>) => void;
-      // opens folder picker dialog
-      pickFolder:   () => Promise<string | null>;
-      // saves folder paths
-      saveConfig:   (paths: Record<FolderKey, string>) => void;
-      // loads folder paths
-      loadConfig:   () => Promise<Record<FolderKey, string>>;
-      // scans the folders and returns their .stl file contents
-      scanFolders:  (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>; 
-      // moves a file from one folder to another
-      moveFile:     (params: {
-        name: string;
-        from: FolderKey;
-        to: FolderKey;
-        folderPaths: Record<FolderKey, string>;
-      }) => Promise<{ success: boolean; error?: string }>;
-      
-      importFile: (params: {
-        from: string;
-        name: string;
-        toFolder: FolderKey;
-        folderPaths: Record<FolderKey, string>;
-      }) => Promise<{ success: boolean; error?: string }>;
+// declare global {
+//   interface Window {
+//     electronAPI: {
+//       // loads saved file metadata
+//       loadData:     () => Promise<Record<FolderKey, FileItem[]>>;
+//       // saves file metadata
+//       saveData:     (data: Record<FolderKey, FileItem[]>) => void;
+//       // opens folder picker dialog
+//       pickFolder:   () => Promise<string | null>;
+//       // saves folder paths
+//       saveConfig:   (paths: Record<FolderKey, string>) => void;
+//       // loads folder paths
+//       loadConfig:   () => Promise<Record<FolderKey, string>>;
+//       // scans the folders and returns their .stl file contents
+//       scanFolders:  (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>;
+//       // moves a file from one folder to another
+//       moveFile:     (params: {
+//         name: string;
+//         from: FolderKey;
+//         to: FolderKey;
+//         folderPaths: Record<FolderKey, string>;
+//       }) => Promise<{ success: boolean; error?: string }>;
 
-    };
-  }
-}
+//       // imports file from OS using path
+//       importFile: (params: {
+//         from: string;
+//         name: string;
+//         toFolder: FolderKey;
+//         folderPaths: Record<FolderKey, string>;
+//       }) => Promise<{ success: boolean; error?: string }>;
+
+//       // imports file from in-browser drag as buffer
+//       importFileBuffer?: (params: {
+//         name: string;
+//         buffer: number[];
+//         toFolder: FolderKey;
+//         folderPaths: Record<FolderKey, string>;
+//       }) => Promise<{ success: boolean; error?: string }>;
+//     };
+//   }
+// }
 
 window.addEventListener("drop", (e) => {
   e.preventDefault();
@@ -51,11 +58,55 @@ export default function Setup() {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [configReady, setConfigReady]   = useState(false);
 
+  useEffect(() => {
+    const dropZone = document.getElementById("drop-area");
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+
+      const file = e.dataTransfer?.files?.[0];
+      if (!file || !file.name.endsWith(".stl")) return;
+
+      const reader = new FileReader();
+
+      reader.onload = async () => {
+        const buffer = reader.result as ArrayBuffer;
+        const toFolder: FolderKey = "A"; // 👈 you can update this logic later
+
+        const result = await window.electronAPI.importFileBuffer?.({
+          name: file.name,
+          buffer: Array.from(new Uint8Array(buffer)),
+          toFolder,
+          folderPaths,
+        });
+
+        if (result?.success) {
+          window.electronAPI.scanFolders(folderPaths).then(setFolders);
+          console.log("✅ File imported and folders refreshed");
+        } else {
+          alert("❌ Failed to import file: " + result?.error);
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
+    };
+
+    const handleDragOver = (e: DragEvent) => e.preventDefault();
+
+    dropZone?.addEventListener("drop", handleDrop);
+    dropZone?.addEventListener("dragover", handleDragOver);
+
+    return () => {
+      dropZone?.removeEventListener("drop", handleDrop);
+      dropZone?.removeEventListener("dragover", handleDragOver);
+    };
+  }, [folderPaths]);
+
   // Step 1: Load config once
   useEffect(() => {
     window.electronAPI.loadConfig().then((config) => {
       setFolderPaths(config);
-      console.log("Loaded folder paths:", config);
+      // console.log("Loaded folder paths:", config);
       setConfigReady(true);
     });
   }, []);
@@ -155,9 +206,9 @@ export default function Setup() {
 
       <div className="flex gap-4">
         {(["A", "B", "C"] as FolderKey[]).map((key) => (
-          <div className="flex-1 space-y-2">
+          <div key={key} className="flex-1 space-y-2">
             {/* Folder picker controls */}
-            <div key={key} className="space-y-1 text-sm flex flex-col items-center">
+            <div  className="space-y-1 text-sm flex flex-col items-center">
               <button
                 onClick={() => handlePickFolder(key)}
                 className="px-3 py-1 rounded bg-blue-600 text-white text-sm"
@@ -201,6 +252,11 @@ export default function Setup() {
         onClose = {() => setSelectedFile(null)}
         onSave  = {handleSaveMetadata}
       />
+
+      <div id="drop-area" className="w-full h-full border-2 border-dashed p-4">
+        Drop here
+      </div>
+
     </div>
   );
 }
