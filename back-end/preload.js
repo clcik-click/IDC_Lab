@@ -3,14 +3,14 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
   loadData:     () => ipcRenderer.invoke("load-data"),
-  saveData:     (data) => ipcRenderer.send("save-data", data),
+  saveData:     (param) => ipcRenderer.send("save-data", param),
   pickFolder:   () => ipcRenderer.invoke("pick-folder"),
-  saveConfig:   (paths) => ipcRenderer.send("save-config", paths),
+  saveConfig:   (param) => ipcRenderer.send("save-config", param),
   loadConfig:   () => ipcRenderer.invoke("load-config"),
-  scanFolders:  (folderPaths) => ipcRenderer.invoke("scan-folders", folderPaths),
-  moveFile:     (payload) => ipcRenderer.invoke("move-file", payload),
+  scanFolders:  (param) => ipcRenderer.invoke("scan-folders", param),
+  moveFile:     (params) => ipcRenderer.invoke("move-file", params),
   importFile:   (params) => ipcRenderer.invoke("import-file", params),
-
   importFileBuffer: (params) => ipcRenderer.invoke("import-file-buffer", params),
   
 });
+ 

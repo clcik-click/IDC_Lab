@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { FileItem, FolderKey } from "../types/FileItem";
-import FolderView from "../components/FolderView";
+import FolderView from "../components/FolderView_1";
 import EditFileModal from "../components/EditFileModal";
 
 // declare global {
@@ -52,12 +52,18 @@ window.addEventListener("drop", (e) => {
 });
 
 export default function Setup() {
+  // Folder and its files
   const [folders, setFolders] = useState<Record<FolderKey, FileItem[]>>({ A: [], B: [], C: [], });
+
+  // Folder and its path
   const [folderPaths, setFolderPaths]   = useState<Record<FolderKey, string>>({ A: "", B: "", C: "", });
   
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  // For start-up initialization
   const [configReady, setConfigReady]   = useState(false);
 
+  // For current working file
+  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  
   useEffect(() => {
     const dropZone = document.getElementById("drop-area");
 

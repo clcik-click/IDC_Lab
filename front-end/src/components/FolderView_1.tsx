@@ -28,48 +28,48 @@ export default function FolderView({
     e.preventDefault();
     setHighlight(false);
 
-    const filesArray = Array.from(e.dataTransfer.files);
-    console.log("🔽 Dropped files:", filesArray);
+    // const filesArray = Array.from(e.dataTransfer.files);
+    // console.log("🔽 Dropped files:", filesArray);
 
-    filesArray.forEach((file) => {
-      console.log(" - Name:", file.name, "Path:", (file as any).path);
-    });
+    // filesArray.forEach((file) => {
+    //   console.log(" - Name:", file.name, "Path:", (file as any).path);
+    // });
 
-    console.log("🔽 Is Electron:", typeof window?.electronAPI !== "undefined");
-    console.log("ElectronAPI:", window.electronAPI);
-    console.log("e.dataTransfer.types:", e.dataTransfer.types);
+    // console.log("🔽 Is Electron:", typeof window?.electronAPI !== "undefined");
+    // console.log("ElectronAPI:", window.electronAPI);
+    // console.log("e.dataTransfer.types:", e.dataTransfer.types);
 
-    for (const file of filesArray) {
-      console.log(" - name:", file.name);
-      console.log(" - type:", file.type);
-      console.log(" - size:", file.size);
-      console.log(" - path:", (file as any).path); // ← this should not be undefined
-    }
+    // for (const file of filesArray) {
+    //   console.log(" - name:", file.name);
+    //   console.log(" - type:", file.type);
+    //   console.log(" - size:", file.size);
+    //   console.log(" - path:", (file as any).path); // ← this should not be undefined
+    // }
 
-    // External file drop (from OS)
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const filesArray = Array.from(e.dataTransfer.files);
-      const stlFiles = filesArray.filter(
-        (f) =>
-          f.name.toLowerCase().endsWith(".stl") &&
-          typeof (f as any).path === "string"
-      );
+    // // External file drop (from OS)
+    // if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    //   const filesArray = Array.from(e.dataTransfer.files);
+    //   const stlFiles = filesArray.filter(
+    //     (f) =>
+    //       f.name.toLowerCase().endsWith(".stl") &&
+    //       typeof (f as any).path === "string"
+    //   );
 
-      for (const file of stlFiles) {
-        const sourcePath = (file as any).path;
-        if (!sourcePath) continue;
+    //   for (const file of stlFiles) {
+    //     const sourcePath = (file as any).path;
+    //     if (!sourcePath) continue;
 
-        await window.electronAPI.importFile({
-          from: sourcePath,
-          name: file.name,
-          toFolder: folderId,
-          folderPaths: folderPaths!,
-        });
-      }
+    //     await window.electronAPI.importFile({
+    //       from: sourcePath,
+    //       name: file.name,
+    //       toFolder: folderId,
+    //       folderPaths: folderPaths!,
+    //     });
+    //   }
 
-      if (onRefresh) onRefresh();
-      return;
-    }
+    //   if (onRefresh) onRefresh();
+    //   return;
+    // }
 
     // Internal drag-and-drop
     const raw = e.dataTransfer.getData("text/plain");
