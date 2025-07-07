@@ -2,18 +2,37 @@ import type { FileItem, FolderKey} from "../types/FileItem";
 import { useEffect, useState } from "react";
 import { FolderUp } from "lucide-react";
 import FolderView from "../components/FolderView_2";
+import EditFileModal from "../components/EditFileModal";
 
 declare global {
   interface window{
     electronAPI: {
+        // File paths
+        pickFolder:   () => Promise<string | null>;
         loadConfig:   () => Promise<Record<FolderKey, string>>;
         saveConfig:   (paths: Record<FolderKey, string>) => void;
-        loadData:     () => Promise<Record<FolderKey, FileItem[]>>;
-        scanFolders:  (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>;
-        pickFolder:   () => Promise<string | null>;
 
-        // Why params: { name: string} > params is a dictionary > param without s
+        // File metadata
+        loadData:     () => Promise<Record<FolderKey, FileItem[]>>;
+        saveData:     (data: Record<FolderKey, FileItem[]>) => void;
+        scanFolders:  (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>;
+        
+
         moveFile:     (params: { name: string }) => Promise<{ success: boolean; error?: string }>; 
+
+        importFileBuffer?: (params: {
+          name: string;
+          buffer: number[];
+          toFolder: FolderKey;
+          folderPaths: Record<FolderKey, string>;
+        }) => Promise<{ success: boolean; error?: string }>;
+
+        deleteFile: (params: {
+          name: string;
+          folder: FolderKey;
+          folderPaths: Record<FolderKey, string>;
+        }) => Promise<{ success: boolean; error?: string }>;
+
     }
   }
 }
@@ -51,6 +70,65 @@ function Data() {
     }
   }, [folderPaths, configReady]);
 
+  // Step 3: Save updated metadata when folders change
+  useEffect(() => {
+    // Prevent saving empty folder state
+    const isEmpty = Object.values(folders).every(arr => arr.length === 0);
+    if (!isEmpty) {
+      window.electronAPI.saveData(folders);
+      console.log("💾 Saved metadata:", folders);
+    }
+  }, [folders]);
+
+  // Handle file drop in the drop area
+  useEffect(() => {
+    const dropZone = document.getElementById("drop-area");
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+
+      const files = Array.from(e.dataTransfer?.files || []).filter((file) =>
+        file.name.toLowerCase().endsWith(".stl")
+      );
+
+      for (const file of files) {
+        const reader = new FileReader();
+
+        reader.onload = async () => {
+          const buffer = reader.result as ArrayBuffer;
+          const toFolder: FolderKey = "A"; // 👈 adjust logic later
+
+          const result = await window.electronAPI.importFileBuffer?.({
+            name: file.name,
+            buffer: Array.from(new Uint8Array(buffer)),
+            toFolder,
+            folderPaths,
+          });
+
+          if (result?.success) {
+            window.electronAPI.scanFolders(folderPaths).then(setFolders);
+            console.log(`✅ Imported: ${file.name}`);
+          } else {
+            alert(`❌ Failed to import ${file.name}: ` + result?.error);
+          }
+        };
+
+        reader.readAsArrayBuffer(file);
+      }
+    };
+
+    const handleDragOver = (e: DragEvent) => e.preventDefault();
+
+    dropZone?.addEventListener("drop", handleDrop);
+    dropZone?.addEventListener("dragover", handleDragOver);
+
+    return () => {
+      dropZone?.removeEventListener("drop", handleDrop);
+      dropZone?.removeEventListener("dragover", handleDragOver);
+    };
+  }, [folderPaths]);
+
+
   // Handle picking a folder path
   const handlePickFolder = async (key: FolderKey) => {
     const selected = await window.electronAPI.pickFolder();
@@ -63,12 +141,12 @@ function Data() {
   }
 
   // Handle draging a file - copy the file information to the data transfer object
-  const handleDragFile = (e: React.DragEvent, file: FileItem, from: FolderKey, index: number) => {
-    const payload = JSON.stringify({ file, from, index });
-    console.log("Dragging file:", file.name, "from:", from, "index:", index);
-    console.log("Payload:", payload);
-    e.dataTransfer.setData("text/plain", payload);
-  }
+  // const handleDragFile = (e: React.DragEvent, file: FileItem, from: FolderKey, index: number) => {
+  //   const payload = JSON.stringify({ file, from, index });
+  //   console.log("Dragging file:", file.name, "from:", from, "index:", index);
+  //   console.log("Payload:", payload);
+  //   e.dataTransfer.setData("text/plain", payload);
+  // }
 
   // Handle dropping a file
   const handleDropFile = async (
@@ -107,6 +185,38 @@ function Data() {
     }
   }
 
+  const handleDeleteFile = async (file: FileItem, folder: FolderKey) => {
+    const result = await window.electronAPI.deleteFile({
+      name: file.name,
+      folder,
+      folderPaths,
+    });
+
+    if (result.success) {
+      setFolders((prev) => ({
+        ...prev,
+        [folder]: prev[folder].filter((f) => f.id !== file.id),
+      }));
+      console.log("✅ File deleted:", file.name);
+    } else {
+      alert("❌ Failed to delete file: " + result.error);
+    }
+  };
+
+
+  const handleSaveMetadata = (updated: FileItem) => {
+    setFolders((prev) => {
+      const next = { ...prev };
+      for (const key in next) {
+        const folder = key as FolderKey;
+        next[folder] = next[folder].map((f) =>
+          f.id === updated.id ? updated : f
+        );
+      }
+      return next;
+    });
+    setSelectedFile(null);
+  }
 
   return (
     <div className="p-6 space-y-4"> 
@@ -160,14 +270,25 @@ function Data() {
               folderId    ={key} // ✅ Needed if the FolderView uses this to track source during drag
               files       ={folders[key]}
               onClickFile ={setSelectedFile}
-              onDragStart ={handleDragFile}
+              // onDragStart ={handleDragFile}
               onDropFile  ={(file, from, originalIndex, dropIndex) =>
                 handleDropFile(file, from as FolderKey, key, originalIndex, dropIndex)
               }
+              onDeleteFile={handleDeleteFile}
+
+
             />
           </div>
         ))}
       </div>
+
+      {/* Metadata modal */}
+      <EditFileModal
+        file    = {selectedFile}
+        onClose = {() => setSelectedFile(null)}
+        onSave  = {handleSaveMetadata}
+      />    
+
     </div>
   );
 };

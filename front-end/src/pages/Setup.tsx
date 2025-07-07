@@ -108,41 +108,41 @@ export default function Setup() {
     };
   }, [folderPaths]);
 
-  // Step 1: Load config once
-  useEffect(() => {
-    window.electronAPI.loadConfig().then((config) => {
-      setFolderPaths(config);
-      // console.log("Loaded folder paths:", config);
-      setConfigReady(true);
-    });
-  }, []);
+  // // Step 1: Load config once
+  // useEffect(() => {
+  //   window.electronAPI.loadConfig().then((config) => {
+  //     setFolderPaths(config);
+  //     // console.log("Loaded folder paths:", config);
+  //     setConfigReady(true);
+  //   });
+  // }, []);
 
-  // Step 2: Load saved metadata and scan folders after config is ready
-  useEffect(() => {
-    if (configReady && (folderPaths.A || folderPaths.B || folderPaths.C)) {
-      // First, load saved metadata
-      window.electronAPI.loadData().then((saved) => {
-        setFolders(saved);
-        console.log("✅ Loaded saved metadata:", saved);
+  // // Step 2: Load saved metadata and scan folders after config is ready
+  // useEffect(() => {
+  //   if (configReady && (folderPaths.A || folderPaths.B || folderPaths.C)) {
+  //     // First, load saved metadata
+  //     window.electronAPI.loadData().then((saved) => {
+  //       setFolders(saved);
+  //       console.log("✅ Loaded saved metadata:", saved);
 
-        // Then scan folders and merge new files
-        window.electronAPI.scanFolders(folderPaths).then((scanned) => {
-          setFolders(scanned);
-          console.log("✅ Scanned folders and updated state");
-        });
-      });
-    }
-  }, [folderPaths, configReady]);
+  //       // Then scan folders and merge new files
+  //       window.electronAPI.scanFolders(folderPaths).then((scanned) => {
+  //         setFolders(scanned);
+  //         console.log("✅ Scanned folders and updated state");
+  //       });
+  //     });
+  //   }
+  // }, [folderPaths, configReady]);
 
-  // Step 3: Save updated metadata when folders change
-  useEffect(() => {
-    // Prevent saving empty folder state
-    const isEmpty = Object.values(folders).every(arr => arr.length === 0);
-    if (!isEmpty) {
-      window.electronAPI.saveData(folders);
-      console.log("💾 Saved metadata:", folders);
-    }
-  }, [folders]);
+  // // Step 3: Save updated metadata when folders change
+  // useEffect(() => {
+  //   // Prevent saving empty folder state
+  //   const isEmpty = Object.values(folders).every(arr => arr.length === 0);
+  //   if (!isEmpty) {
+  //     window.electronAPI.saveData(folders);
+  //     console.log("💾 Saved metadata:", folders);
+  //   }
+  // }, [folders]);
 
 
   // Select folder paths

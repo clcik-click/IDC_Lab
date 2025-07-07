@@ -28,17 +28,21 @@ export default function EditFileModal({ file, onClose, onSave }: EditFileModalPr
           <Pencil size={20} /> Edit Metadata
         </h2>
 
+        <p className="text-sm text-gray-500">
+             File Name: {form.name || "Unknown"}
+        </p>
+
         {[
-          ["File Name", "name"],
           ["Owner", "owner"],
+          ["Email", "email"],
+          ["Quantity", "quantity"],
           ["Class", "class"],
-          ["Priority", "priority"],
           ["Notes", "notes"],
         ].map(([label, key]) => (
           <label key={key} className="block text-sm">
             <span className="text-gray-600">{label}</span>
             <input
-              type={key === "priority" ? "number" : "text"}
+              type={key === "quantity" ? "number" : "text"}
               value={(form as any)[key] ?? ""}
               onChange={(e) => setForm({ ...form, [key]: e.target.value })}
               className="w-full mt-1 border rounded px-2 py-1"
@@ -48,6 +52,10 @@ export default function EditFileModal({ file, onClose, onSave }: EditFileModalPr
  
         <p className="text-sm text-gray-500">
              Received: {new Date(form.dateReceived).toLocaleString()}
+        </p>
+
+        <p className="text-sm text-gray-500">
+             Size: {(form.size).toLocaleString()} bytes
         </p>
 
         <div className="flex justify-end gap-2 pt-2">

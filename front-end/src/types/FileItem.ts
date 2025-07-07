@@ -4,8 +4,10 @@ export interface FileItem {
   id: string;
   name: string;
   owner: string;
+  email?: string;
   class?: string;
-  priority?: number;
+  quantity?: number;
   notes?: string;
   dateReceived: string; // ISO string
+  size: number; // in bytes
 }

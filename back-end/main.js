@@ -30,7 +30,6 @@ function createWindow() {
   }
 }
 
-
 // ✅ IPC handlers
 ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
   try {
@@ -67,26 +66,46 @@ ipcMain.handle("load-data", () => {
   return loadMetadata();
 });
 
-// Scan folders and merge with existing metadata
+function readSTLFilesFromFolder(folderPath) {
+  if (!fs.existsSync(folderPath)) return [];
+  const files = fs.readdirSync(folderPath);
+  return files
+    .filter((f) => f.toLowerCase().endsWith(".stl"))
+    .map((filename) => ({
+      name: filename,
+      fullPath: path.join(folderPath, filename),
+    }));
+}
+
 ipcMain.handle("scan-folders", async (_event, folderPaths) => {
-  const metadata = loadMetadata();
+  const metadata = loadMetadata(); // You still track extra info like notes, etc.
   const result = { A: [], B: [], C: [] };
 
   for (const key of ["A", "B", "C"]) {
     const folder = folderPaths[key];
     const files = readSTLFilesFromFolder(folder);
+    console.log(`📂 Scanned folder ${key}:`, files.map(f => f.name));
 
-    result[key] = files.map((filename) => {
-      const existing = metadata[key]?.find((f) => f.name === filename);
+    result[key] = files.map(({ name, fullPath }) => {
+      let stats = null;
+      try {
+        stats = fs.statSync(fullPath);
+      } catch {
+        console.warn("⚠️ Failed to stat file:", fullPath);
+      }
+
+      const existing = metadata[key]?.find((f) => f.name === name);
       return (
         existing ?? {
-          id: `${key}-${filename}`,
-          name: filename,
+          id: `${key}-${name}`,
+          name,
           owner: "",
+          email: "",
           class: "",
+          quantity: 1,
           notes: "",
-          priority: 1,
-          dateReceived: new Date().toISOString(),
+          dateReceived: stats?.mtime?.toISOString() || "", // file modified time
+          size: stats?.size || 0, // in bytes
         }
       );
     });
@@ -94,6 +113,7 @@ ipcMain.handle("scan-folders", async (_event, folderPaths) => {
 
   return result;
 });
+
 
 // Folder picker dialog
 ipcMain.handle("pick-folder", async () => {
@@ -129,33 +149,26 @@ ipcMain.on("save-data", (_event, data) => {
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2), "utf-8");
 });
 
-ipcMain.handle("import-file", async (_event, { from, name, toFolder, folderPaths }) => {
-  try {
-    if (!folderPaths || !folderPaths[toFolder]) {
-      throw new Error(`Missing folder path for target folder "${toFolder}"`);
-    }
+// ipcMain.handle("import-file", async (_event, { from, name, toFolder, folderPaths }) => {
+//   try {
+//     if (!folderPaths || !folderPaths[toFolder]) {
+//       throw new Error(`Missing folder path for target folder "${toFolder}"`);
+//     }
 
-    const destDir = folderPaths[toFolder];
-    const destPath = path.join(destDir, name);
-    console.log("Trying to copy from:", from);
-    console.log("To destination:", destPath);
+//     const destDir = folderPaths[toFolder];
+//     const destPath = path.join(destDir, name);
+//     console.log("Trying to copy from:", from);
+//     console.log("To destination:", destPath);
 
-    if (!fs.existsSync(from)) throw new Error("Source file does not exist");
+//     if (!fs.existsSync(from)) throw new Error("Source file does not exist");
 
-    fs.copyFileSync(from, destPath);
-    return { success: true };
-  } catch (err) {
-    console.error("❌ Failed to import file:", err);
-    return { success: false, error: err.message };
-  }
-});
-
-function readSTLFilesFromFolder(folderPath) {
-  if (!fs.existsSync(folderPath)) return [];
-  const files = fs.readdirSync(folderPath);
-  return files.filter(f => f.toLowerCase().endsWith(".stl"));
-}
-
+//     fs.copyFileSync(from, destPath);
+//     return { success: true };
+//   } catch (err) {
+//     console.error("❌ Failed to import file:", err);
+//     return { success: false, error: err.message };
+//   }
+// });
 
 ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, folderPaths }) => {
   try {
@@ -169,6 +182,21 @@ ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, fo
     return { success: true };
   } catch (err) {
     console.error("❌ Failed to import buffer:", err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("delete-file", async (_event, { name, folder, folderPaths }) => {
+  try {
+    const targetPath = path.join(folderPaths[folder], name);
+    if (fs.existsSync(targetPath)) {
+      fs.unlinkSync(targetPath); // delete the file
+      return { success: true };
+    } else {
+      return { success: false, error: "File not found" };
+    }
+  } catch (err) {
+    console.error("❌ Failed to delete file:", err);
     return { success: false, error: err.message };
   }
 });
