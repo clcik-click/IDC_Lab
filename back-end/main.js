@@ -1,9 +1,11 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
-const fs = require("fs");
-const path = require("path");
 
-const dataPath = path.join(app.getPath("userData"), "data.json");
-const configPath = path.join(app.getPath("userData"), "config.json");
+const Database  = require("better-sqlite3");
+const path      = require("path");
+const fs        = require("fs");
+
+// const dataPath    = path.join(app.getPath("userData"), "data.json");
+const configPath  = path.join(app.getPath("userData"), "config.json");
 
 function createWindow() {
   const isDev = !app.isPackaged;
@@ -58,74 +60,6 @@ ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
   }
 });
 
-// Helper to read existing metadata from data.json
-function loadMetadata() {
-  try {
-    const raw = fs.readFileSync(dataPath, "utf-8");
-    const parsed = JSON.parse(raw);
-    // console.log("✅ Loaded saved metadata:", parsed);
-    return parsed;
-  } catch (err) {
-    console.error("❌ Failed to load metadata:", err);
-    return { A: [], B: [], C: [] };
-  }
-}
-
-// Load saved metadata only
-ipcMain.handle("load-data", () => {
-  return loadMetadata();
-});
-
-function readSTLFilesFromFolder(folderPath) {
-  if (!fs.existsSync(folderPath)) return [];
-  const files = fs.readdirSync(folderPath);
-  return files
-    .filter((f) => f.toLowerCase().endsWith(".stl"))
-    .map((filename) => ({
-      name: filename,
-      fullPath: path.join(folderPath, filename),
-    }));
-}
-
-ipcMain.handle("scan-folders", async (_event, folderPaths) => {
-  const metadata = loadMetadata(); // You still track extra info like notes, etc.
-  const result = { A: [], B: [], C: [] };
-
-  for (const key of ["A", "B", "C"]) {
-    const folder = folderPaths[key];
-    const files = readSTLFilesFromFolder(folder);
-    // console.log(`📂 Scanned folder ${key}:`, files.map(f => f.name));
-
-    result[key] = files.map(({ name, fullPath }) => {
-      let stats = null;
-      try {
-        stats = fs.statSync(fullPath);
-      } catch {
-        console.warn("⚠️ Failed to stat file:", fullPath);
-      }
-
-      const existing = metadata[key]?.find((f) => f.name === name);
-      return (
-        existing ?? {
-          id: `${key}-${name}`,
-          name,
-          owner: "",
-          email: "",
-          class: "",
-          quantity: 1,
-          notes: "",
-          dateReceived: stats?.mtime?.toISOString() || "", // file modified time
-          size: stats?.size || 0, // in bytes
-          dateFinished: "", // initially empty
-        }
-      );
-    });
-  }
-
-  return result;
-});
-
-
 // Folder picker dialog
 ipcMain.handle("pick-folder", async () => {
   const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
@@ -133,7 +67,7 @@ ipcMain.handle("pick-folder", async () => {
   return result.filePaths?.[0] || null;
 });
 
-// Load folder path config
+////////////////////////////////////////////////////////
 ipcMain.handle("load-config", () => {
   try {
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -142,23 +76,10 @@ ipcMain.handle("load-config", () => {
     return { A: "", B: "", C: "" };
   }
 });
-
-// Save folder path config
 ipcMain.on("save-config", (_event, paths) => {
   fs.writeFileSync(configPath, JSON.stringify(paths, null, 2), "utf-8");
 });
-
-// Save updated metadata
-ipcMain.on("save-data", (_event, data) => {
-  const isEmpty = Object.values(data).every(arr => Array.isArray(arr) && arr.length === 0);
-  if (isEmpty) {
-    console.warn("⚠️ Attempted to save empty metadata. Skipping save.");
-    return;
-  }
-
-  // console.log("💾 Saving metadata:", data);
-  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2), "utf-8");
-});
+////////////////////////////////////////////////////////
 
 ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, folderPaths }) => {
   try {
@@ -176,6 +97,9 @@ ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, fo
   }
 });
 
+
+/////////////////////
+
 ipcMain.handle("delete-file", async (_event, { name, folder, folderPaths }) => {
   try {
     const targetPath = path.join(folderPaths[folder], name);
@@ -189,6 +113,108 @@ ipcMain.handle("delete-file", async (_event, { name, folder, folderPaths }) => {
     console.error("❌ Failed to delete file:", err);
     return { success: false, error: err.message };
   }
+});
+ 
+function readSTLFilesFromFolder(folderPath) {
+  if (!fs.existsSync(folderPath)) return [];
+  const files = fs.readdirSync(folderPath);
+  return files
+    .filter((f) => f.toLowerCase().endsWith(".stl"))
+    .map((filename) => ({
+      name: filename,
+      fullPath: path.join(folderPath, filename),
+    }));
+}
+
+function getDB(folderPath) {
+  const dbPath = path.join(folderPath, "metadata.db");
+  const db = new Database(dbPath);
+  db.pragma("journal_mode = WAL");
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS metadata (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      owner TEXT,
+      email TEXT,
+      class TEXT,
+      quantity INTEGER,
+      notes TEXT,
+      dateReceived TEXT,
+      dateFinished TEXT,
+      size INTEGER
+    )
+  `).run();
+  return db;
+}
+
+function loadMetadataFromDB(folderPath) {
+  const db = getDB(folderPath);
+  const rows = db.prepare("SELECT * FROM metadata").all();
+  db.close();
+  return rows;
+}
+
+function saveMetadataToDB(folderPath, data) {
+  const db = getDB(folderPath);
+  const insert = db.prepare(`
+    INSERT OR REPLACE INTO metadata (
+      id, name, owner, email, class, quantity, notes,
+      dateReceived, dateFinished, size
+    ) VALUES (
+      @id, @name, @owner, @email, @class, @quantity, @notes,
+      @dateReceived, @dateFinished, @size
+    )
+  `);
+  const tx = db.transaction((items) => {
+    for (const item of items) {
+      insert.run(item);
+    }
+  });
+  tx(data);
+  db.close();
+}
+
+ipcMain.on("save-data", (_event, { folders, folderPaths }) => {
+  for (const key of ["A", "B", "C"]) {
+    saveMetadataToDB(folderPaths[key], folders[key]);
+  }
+});
+
+ipcMain.handle("scan-folders", async (_event, folderPaths) => {
+  const result = { A: [], B: [], C: [] };
+
+  for (const key of ["A", "B", "C"]) {
+    const folder    = folderPaths[key];
+    const files     = readSTLFilesFromFolder(folder);
+    const metadata  = loadMetadataFromDB(folder);
+
+    result[key] = files.map(({ name, fullPath }) => {
+      let stats = null;
+      try {
+        stats = fs.statSync(fullPath);
+      } catch {
+        console.warn("⚠️ Failed to stat file:", fullPath);
+      }
+
+      const existing = metadata.find((f) => f.name === name);
+      return (
+        existing ?? {
+          id: `${key}-${name}`,
+          name,
+          owner: "",
+          email: "",
+          class: "",
+          quantity: 1,
+          notes: "",
+          dateReceived: stats?.mtime?.toISOString() || "",
+          dateFinished: "",
+          size: stats?.size || 0,
+        }
+      );
+    });
+  }
+
+  return result;
 });
 
 app.whenReady().then(createWindow);

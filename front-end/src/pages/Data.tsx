@@ -13,8 +13,8 @@ declare global {
         saveConfig:   (paths: Record<FolderKey, string>) => void;
 
         // File metadata
-        loadData:     () => Promise<Record<FolderKey, FileItem[]>>;
-        saveData:     (data: Record<FolderKey, FileItem[]>) => void;
+        // loadData:     () => Promise<Record<FolderKey, FileItem[]>>;
+        saveData: (data: { folders: Record<FolderKey, FileItem[]>; folderPaths: Record<FolderKey, string> }) => void;
         scanFolders:  (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>;
         
 
@@ -56,26 +56,19 @@ function Data() {
   // Step 2: Load saved metadata and scan folders after config is ready
   useEffect(() => {
     if (configReady && (folderPaths.A || folderPaths.B || folderPaths.C)) {
-      // First, load saved metadata
-      window.electronAPI.loadData().then((saved) => {
-        setFolders(saved);
-        // console.log("✅ Loaded saved metadata:", saved);
-
-        // Then scan folders and merge new files
-        window.electronAPI.scanFolders(folderPaths).then((scanned) => {
-          setFolders(scanned);
-          // console.log("✅ Scanned folders and updated state");
-        });
+      window.electronAPI.scanFolders(folderPaths).then((scanned) => {
+        console.log("📂 Scanned folders:", scanned);
+        setFolders(scanned);
       });
     }
   }, [folderPaths, configReady]);
 
+
   // Step 3: Save updated metadata when folders change
   useEffect(() => {
-    // Prevent saving empty folder state
     const isEmpty = Object.values(folders).every(arr => arr.length === 0);
     if (!isEmpty) {
-      window.electronAPI.saveData(folders);
+      window.electronAPI.saveData({ folders, folderPaths });
       // console.log("💾 Saved metadata:", folders);
     }
   }, [folders]);
@@ -127,7 +120,6 @@ function Data() {
       dropZone?.removeEventListener("dragover", handleDragOver);
     };
   }, [folderPaths]);
-
 
   // Handle picking a folder path
   const handlePickFolder = async (key: FolderKey) => {
@@ -193,7 +185,6 @@ function Data() {
       }));
     }
   };
-
 
   const handleDeleteFile = async (file: FileItem, folder: FolderKey) => {
     const result = await window.electronAPI.deleteFile({
@@ -281,7 +272,6 @@ function Data() {
           );
         })}
       </div>
-
 
       {/* Metadata modal */}
       <EditFileModal
