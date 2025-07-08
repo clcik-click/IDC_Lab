@@ -59,12 +59,12 @@ function Data() {
       // First, load saved metadata
       window.electronAPI.loadData().then((saved) => {
         setFolders(saved);
-        console.log("✅ Loaded saved metadata:", saved);
+        // console.log("✅ Loaded saved metadata:", saved);
 
         // Then scan folders and merge new files
         window.electronAPI.scanFolders(folderPaths).then((scanned) => {
           setFolders(scanned);
-          console.log("✅ Scanned folders and updated state");
+          // console.log("✅ Scanned folders and updated state");
         });
       });
     }
@@ -76,7 +76,7 @@ function Data() {
     const isEmpty = Object.values(folders).every(arr => arr.length === 0);
     if (!isEmpty) {
       window.electronAPI.saveData(folders);
-      console.log("💾 Saved metadata:", folders);
+      // console.log("💾 Saved metadata:", folders);
     }
   }, [folders]);
 
@@ -107,7 +107,7 @@ function Data() {
 
           if (result?.success) {
             window.electronAPI.scanFolders(folderPaths).then(setFolders);
-            console.log(`✅ Imported: ${file.name}`);
+            // console.log(`✅ Imported: ${file.name}`);
           } else {
             alert(`❌ Failed to import ${file.name}: ` + result?.error);
           }
@@ -134,19 +134,11 @@ function Data() {
     const selected = await window.electronAPI.pickFolder();
     if (selected) {
       const updated = { ...folderPaths, [key]: selected };
-      console.log(updated)
+      // console.log(`updated folder path for ${key}:`, selected);
       setFolderPaths(updated);
       window.electronAPI.saveConfig(updated);
     }
   }
-
-  // Handle draging a file - copy the file information to the data transfer object
-  // const handleDragFile = (e: React.DragEvent, file: FileItem, from: FolderKey, index: number) => {
-  //   const payload = JSON.stringify({ file, from, index });
-  //   console.log("Dragging file:", file.name, "from:", from, "index:", index);
-  //   console.log("Payload:", payload);
-  //   e.dataTransfer.setData("text/plain", payload);
-  // }
 
   // Handle dropping a file
   const handleDropFile = async (
@@ -156,17 +148,18 @@ function Data() {
     originalIndex?: number,
     dropIndex?: number
   ) => {
+    // Reordering within same folder
     if (from === to && originalIndex != null && dropIndex != null) {
       setFolders(prev => {
         const files = [...prev[to]];
-        const [moved] = files.splice(originalIndex, 1); // remove
-        files.splice(dropIndex, 0, moved);              // insert
+        const [moved] = files.splice(originalIndex, 1);
+        files.splice(dropIndex, 0, moved);
         return {
           ...prev,
           [to]: files,
         };
       });
-      return; // skip API call if just reordering
+      return;
     }
 
     const result = await window.electronAPI.moveFile({
@@ -177,13 +170,30 @@ function Data() {
     });
 
     if (result.success) {
+      const newName = result.newName ?? file.name;
+      const newId = newName !== file.name ? `${to}-${newName}` : file.id;
+
+      let updatedFile: FileItem = {
+        ...file,
+        name: newName,
+        id: newId,
+      };
+
+      // Handle dateFinished logic
+      if (to === "C") {
+        updatedFile.dateFinished = new Date().toISOString();
+      } else if (from === "C") {
+        updatedFile.dateFinished = "";
+      }
+
       setFolders(prev => ({
         ...prev,
         [from]: prev[from].filter((f) => f.id !== file.id),
-        [to]: [file, ...prev[to]],
+        [to]: [updatedFile, ...prev[to]],
       }));
     }
-  }
+  };
+
 
   const handleDeleteFile = async (file: FileItem, folder: FolderKey) => {
     const result = await window.electronAPI.deleteFile({
@@ -197,12 +207,11 @@ function Data() {
         ...prev,
         [folder]: prev[folder].filter((f) => f.id !== file.id),
       }));
-      console.log("✅ File deleted:", file.name);
+      // console.log("✅ File deleted:", file.name);
     } else {
       alert("❌ Failed to delete file: " + result.error);
     }
   };
-
 
   const handleSaveMetadata = (updated: FileItem) => {
     setFolders((prev) => {
@@ -227,60 +236,52 @@ function Data() {
       </div>
 
       <div className="flex gap-4">
-        {(["A", "B", "C"] as FolderKey[]).map((key) => (
-          <div key={key} className="flex-1 space-y-2">
-            
-            <div className="flex border h-20 w-full items-center">
-              {/* Left section: Title + folder name */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                    <div className="text-3xl">
-                      {key === "A"
-                        ? "Queue"
-                        : key === "B"
-                        ? "In Progress"
-                        : "Done"}
-                    </div>
-                <div className="text-sm text-gray-500 truncate max-w-full px-2">
-                  {(folderPaths[key]?.split(/[\\/]/).pop()) || "Not set"}
+        {(["A", "B", "C"] as FolderKey[]).map((key) => {
+          const folderLabel =
+            key === "A" ? "Queue" : key === "B" ? "In Progress" : "Done";
+
+          return (
+            <div key={key} className="flex-1 space-y-2">
+              {/* Header: Folder title and pick button */}
+              <div className="flex border h-20 w-full items-center">
+                {/* Left: Folder label + current path */}
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  <div className="text-3xl">{folderLabel}</div>
+                  <div className="text-sm text-gray-500 truncate max-w-full px-2">
+                    {folderPaths[key]?.split(/[\\/]/).pop() || "Not set"}
+                  </div>
                 </div>
+
+                {/* Right: Pick folder button */}
+                <button
+                  onClick={() => handlePickFolder(key)}
+                  className="w-20 h-full bg-blue-100 border-l border-blue-400 
+                            flex items-center justify-center 
+                            hover:bg-blue-200 active:bg-blue-300 
+                            transition-colors duration-200"
+                  title={folderPaths[key] ? folderPaths[key] : "Pick folder"}
+                >
+                  <FolderUp size={36} />
+                </button>
               </div>
 
-              {/* Right button: Pick */}
-              <button
-                onClick={() => handlePickFolder(key)}
-                className="w-20 h-full bg-blue-100 border-l border-blue-400 
-                          flex items-center justify-center 
-                          hover:bg-blue-200 active:bg-blue-300 
-                          transition-colors duration-200"
-              >
-                <FolderUp size={36} />
-              </button>
+              {/* Folder content */}
+              <FolderView
+                title={`${folderLabel} (${key})`}
+                folderId={key}
+                files={folders[key]}
+                allFiles={folders} // ✅ Pass all folders for global duplicate checking
+                onClickFile={setSelectedFile}
+                onDropFile={(file, from, originalIndex, dropIndex) =>
+                  handleDropFile(file, from as FolderKey, key, originalIndex, dropIndex)
+                }
+                onDeleteFile={handleDeleteFile}
+              />
             </div>
-
-            {/* Folder views */}
-            <FolderView
-              key         ={key}
-              title       ={
-                key === "A"
-                  ? "Queue (A)"
-                  : key === "B"
-                  ? "In Progress (B)"
-                  : "Done (C)"
-              }
-              folderId    ={key} // ✅ Needed if the FolderView uses this to track source during drag
-              files       ={folders[key]}
-              onClickFile ={setSelectedFile}
-              // onDragStart ={handleDragFile}
-              onDropFile  ={(file, from, originalIndex, dropIndex) =>
-                handleDropFile(file, from as FolderKey, key, originalIndex, dropIndex)
-              }
-              onDeleteFile={handleDeleteFile}
-
-
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
+
 
       {/* Metadata modal */}
       <EditFileModal

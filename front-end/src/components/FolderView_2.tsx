@@ -6,6 +6,7 @@ interface FolderViewProps {
   title: string;
   folderId: FolderKey;
   files: FileItem[];
+  allFiles: Record<FolderKey, FileItem[]>; // 🆕
   onDropFile: (
     file: FileItem,
     from: FolderKey,
@@ -20,6 +21,7 @@ export default function FolderView({
   title,
   folderId,
   files,
+  allFiles,
   onDropFile,
   onClickFile,
   onDeleteFile,
@@ -86,22 +88,26 @@ export default function FolderView({
     clearSelection();
   };
 
-  const getDuplicateIds = (items: FileItem[]) => {
-    const seen = new Map<string, number>();
-    const duplicates = new Set<string>();
+  const getGlobalDuplicateIds = (
+    currentFiles: FileItem[],
+    allFolders: Record<FolderKey, FileItem[]>
+  ) => {
+    const nameCounts = new Map<string, number>();
 
-    for (const file of items) {
-      const count = seen.get(file.name) ?? 0;
-      seen.set(file.name, count + 1);
-      if (count >= 1) duplicates.add(file.name);
+    for (const key in allFolders) {
+      allFolders[key as FolderKey].forEach((file) => {
+        nameCounts.set(file.name, (nameCounts.get(file.name) ?? 0) + 1);
+      });
     }
 
     return new Set(
-      items.filter((f) => duplicates.has(f.name)).map((f) => f.id)
+      currentFiles
+        .filter((file) => nameCounts.get(file.name)! > 1)
+        .map((file) => file.id)
     );
   };
 
-const duplicateIds = getDuplicateIds(files);
+  const globalDuplicateIds = getGlobalDuplicateIds(files, allFiles);
 
   return (
     <div
@@ -135,7 +141,7 @@ const duplicateIds = getDuplicateIds(files);
             
             className={`relative p-2 mb-2 rounded shadow text-sm cursor-pointer transition
               ${
-                duplicateIds.has(file.id)
+                globalDuplicateIds.has(file.id)
                   ? "bg-orange-100 ring-2 ring-orange-400"
                   : selectedIds.has(file.id)
                   ? "bg-blue-100 ring-2 ring-blue-400"
@@ -143,7 +149,6 @@ const duplicateIds = getDuplicateIds(files);
               }
               ${hoveredIndex === i ? "ring-2 ring-blue-300" : ""}
             `}
-
             title={`Owner: ${file.owner || "?"}\nClass: ${file.class || "?"}\nQuantity: ${file.quantity ?? "-"}`}
           >
             {file.name}

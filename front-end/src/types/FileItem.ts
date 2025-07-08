@@ -10,4 +10,5 @@ export interface FileItem {
   notes?: string;
   dateReceived: string; // ISO string
   size: number; // in bytes
+  dateFinished?: string; // ISO string
 }

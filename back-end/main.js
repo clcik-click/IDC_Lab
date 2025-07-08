@@ -34,16 +34,26 @@ function createWindow() {
 ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
   try {
     const fromPath = path.join(folderPaths[from], name);
-    const toPath = path.join(folderPaths[to], name);
+    const baseName = path.parse(name).name;
+    const ext = path.extname(name);
+    const targetDir = folderPaths[to];
 
-    if (!fs.existsSync(fromPath)) {
-      throw new Error("Source file does not exist");
+    let candidateName = name;
+    let suffixIndex = 0;
+    const romanSuffixes = ["_I", "_II", "_III", "_IV", "_V", "_VI", "_VII", "_VIII", "_IX", "_X"];
+
+    // Find an available name
+    while (fs.existsSync(path.join(targetDir, candidateName))) {
+      suffixIndex += 1;
+      candidateName = `${baseName}${romanSuffixes[suffixIndex - 1] || `_copy${suffixIndex}`}${ext}`;
     }
 
-    fs.renameSync(fromPath, toPath);
-    return { success: true };
+    const destPath = path.join(targetDir, candidateName);
+    fs.renameSync(fromPath, destPath);
+
+    return { success: true, newName: candidateName };
   } catch (err) {
-    console.error("Failed to move file:", err);
+    console.error("❌ Failed to move file:", err);
     return { success: false, error: err.message };
   }
 });
@@ -53,7 +63,7 @@ function loadMetadata() {
   try {
     const raw = fs.readFileSync(dataPath, "utf-8");
     const parsed = JSON.parse(raw);
-    console.log("✅ Loaded saved metadata:", parsed);
+    // console.log("✅ Loaded saved metadata:", parsed);
     return parsed;
   } catch (err) {
     console.error("❌ Failed to load metadata:", err);
@@ -84,7 +94,7 @@ ipcMain.handle("scan-folders", async (_event, folderPaths) => {
   for (const key of ["A", "B", "C"]) {
     const folder = folderPaths[key];
     const files = readSTLFilesFromFolder(folder);
-    console.log(`📂 Scanned folder ${key}:`, files.map(f => f.name));
+    // console.log(`📂 Scanned folder ${key}:`, files.map(f => f.name));
 
     result[key] = files.map(({ name, fullPath }) => {
       let stats = null;
@@ -106,6 +116,7 @@ ipcMain.handle("scan-folders", async (_event, folderPaths) => {
           notes: "",
           dateReceived: stats?.mtime?.toISOString() || "", // file modified time
           size: stats?.size || 0, // in bytes
+          dateFinished: "", // initially empty
         }
       );
     });
@@ -118,7 +129,7 @@ ipcMain.handle("scan-folders", async (_event, folderPaths) => {
 // Folder picker dialog
 ipcMain.handle("pick-folder", async () => {
   const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
-  console.log("Picked folder:", result.filePaths);
+  // console.log("Picked folder:", result.filePaths);
   return result.filePaths?.[0] || null;
 });
 
@@ -145,30 +156,9 @@ ipcMain.on("save-data", (_event, data) => {
     return;
   }
 
-  console.log("💾 Saving metadata:", data);
+  // console.log("💾 Saving metadata:", data);
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2), "utf-8");
 });
-
-// ipcMain.handle("import-file", async (_event, { from, name, toFolder, folderPaths }) => {
-//   try {
-//     if (!folderPaths || !folderPaths[toFolder]) {
-//       throw new Error(`Missing folder path for target folder "${toFolder}"`);
-//     }
-
-//     const destDir = folderPaths[toFolder];
-//     const destPath = path.join(destDir, name);
-//     console.log("Trying to copy from:", from);
-//     console.log("To destination:", destPath);
-
-//     if (!fs.existsSync(from)) throw new Error("Source file does not exist");
-
-//     fs.copyFileSync(from, destPath);
-//     return { success: true };
-//   } catch (err) {
-//     console.error("❌ Failed to import file:", err);
-//     return { success: false, error: err.message };
-//   }
-// });
 
 ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, folderPaths }) => {
   try {

@@ -10,6 +10,7 @@ import {
 
 import Setup from "./pages/Setup";
 import Data from "./pages/Data";
+import Test from "./pages/Test";
 
 function TabNav() {
   const location = useLocation();
@@ -33,6 +34,15 @@ function TabNav() {
       >
         Data
       </Link>
+
+      <Link
+        to="/test"
+        className={`px-4 py-2 border-b-2 ${
+          isActive("/test") ? "border-pink-500 text-pink-500" : "border-transparent text-gray-500"
+        }`}
+      >
+        Test
+      </Link>
     </div>
   );
 }
@@ -45,6 +55,7 @@ function App() {
         <Route path="/" element={<Navigate to="/setup" replace />} />
         <Route path="/setup" element={<Setup />} />
         <Route path="/data" element={<Data />} />
+        <Route path="/test" element={<Test />} />
       </Routes>
     </BrowserRouter>
   );

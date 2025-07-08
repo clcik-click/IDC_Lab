@@ -54,8 +54,12 @@ export default function EditFileModal({ file, onClose, onSave }: EditFileModalPr
              Received: {new Date(form.dateReceived).toLocaleString()}
         </p>
 
-        <p className="text-sm text-gray-500">
+        {/* <p className="text-sm text-gray-500">
              Size: {(form.size).toLocaleString()} bytes
+        </p> */}
+
+        <p className="text-sm text-gray-500">
+            Finished: {new Date(form.dateFinished).toLocaleString()}
         </p>
 
         <div className="flex justify-end gap-2 pt-2">
