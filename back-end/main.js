@@ -33,32 +33,94 @@ function createWindow() {
 }
 
 // ✅ IPC handlers
+// ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
+//   try {
+//     const fromPath = path.join(folderPaths[from], name);
+//     const baseName = path.parse(name).name;
+//     const ext = path.extname(name);
+//     const targetDir = folderPaths[to];
+
+//     let candidateName = name;
+//     let suffixIndex = 0;
+//     const romanSuffixes = ["_I", "_II", "_III", "_IV", "_V", "_VI", "_VII", "_VIII", "_IX", "_X"];
+
+//     // Find an available name
+//     while (fs.existsSync(path.join(targetDir, candidateName))) {
+//       suffixIndex += 1;
+//       candidateName = `${baseName}${romanSuffixes[suffixIndex - 1] || `_copy${suffixIndex}`}${ext}`;
+//     }
+
+//     const destPath = path.join(targetDir, candidateName);
+//     fs.renameSync(fromPath, destPath);
+
+//     return { success: true, newName: candidateName };
+//   } catch (err) {
+//     console.error("❌ Failed to move file:", err);
+//     return { success: false, error: err.message };
+//   }
+// });
+
 ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
   try {
-    const fromPath = path.join(folderPaths[from], name);
+    const fromDir = folderPaths[from];
+    const toDir = folderPaths[to];
+    const fromPath = path.join(fromDir, name);
     const baseName = path.parse(name).name;
     const ext = path.extname(name);
-    const targetDir = folderPaths[to];
 
     let candidateName = name;
     let suffixIndex = 0;
     const romanSuffixes = ["_I", "_II", "_III", "_IV", "_V", "_VI", "_VII", "_VIII", "_IX", "_X"];
 
-    // Find an available name
-    while (fs.existsSync(path.join(targetDir, candidateName))) {
+    // Prevent overwriting: find unique name in destination folder
+    while (fs.existsSync(path.join(toDir, candidateName))) {
       suffixIndex += 1;
       candidateName = `${baseName}${romanSuffixes[suffixIndex - 1] || `_copy${suffixIndex}`}${ext}`;
     }
 
-    const destPath = path.join(targetDir, candidateName);
+    const destPath = path.join(toDir, candidateName);
     fs.renameSync(fromPath, destPath);
+
+    // Step 1: Load the metadata for the file from the "from" DB
+    const fromDB = getDB(fromDir);
+    const row = fromDB.prepare("SELECT * FROM metadata WHERE name = ?").get(name);
+    fromDB.prepare("DELETE FROM metadata WHERE name = ?").run(name);
+    fromDB.close();
+
+    if (row) {
+      // Step 2: Update metadata for new folder and name
+      const toDB = getDB(toDir);
+      const insert = toDB.prepare(`
+        INSERT OR REPLACE INTO metadata (
+          id, name, owner, email, class, quantity, notes,
+          dateReceived, dateFinished, size
+        ) VALUES (
+          @id, @name, @owner, @email, @class, @quantity, @notes,
+          @dateReceived, @dateFinished, @size
+        )
+      `);
+
+      // Assign new ID if renamed
+      const newId = candidateName !== name ? `${to}-${candidateName}` : row.id;
+
+      insert.run({
+        ...row,
+        id: newId,
+        name: candidateName,
+      });
+
+      toDB.close();
+    }
 
     return { success: true, newName: candidateName };
   } catch (err) {
-    console.error("❌ Failed to move file:", err);
+    console.error("❌ Failed to move file or update metadata:", err);
     return { success: false, error: err.message };
   }
 });
+
+
+
 
 // Folder picker dialog
 ipcMain.handle("pick-folder", async () => {
@@ -99,21 +161,28 @@ ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, fo
 
 
 /////////////////////
-
 ipcMain.handle("delete-file", async (_event, { name, folder, folderPaths }) => {
+  const folderPath = folderPaths[folder];
+  const targetPath = path.join(folderPath, name);
+
   try {
-    const targetPath = path.join(folderPaths[folder], name);
+    // Delete the actual file if it exists
     if (fs.existsSync(targetPath)) {
-      fs.unlinkSync(targetPath); // delete the file
-      return { success: true };
-    } else {
-      return { success: false, error: "File not found" };
+      fs.unlinkSync(targetPath);
     }
+
+    // Then delete metadata from the SQLite DB
+    const db = getDB(folderPath);
+    db.prepare("DELETE FROM metadata WHERE name = ?").run(name);
+    db.close();
+
+    return { success: true };
   } catch (err) {
-    console.error("❌ Failed to delete file:", err);
+    console.error("❌ Failed to delete file or metadata:", err);
     return { success: false, error: err.message };
   }
 });
+
  
 function readSTLFilesFromFolder(folderPath) {
   if (!fs.existsSync(folderPath)) return [];
