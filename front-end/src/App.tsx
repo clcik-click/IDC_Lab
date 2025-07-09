@@ -1,4 +1,6 @@
 // App.tsx
+import { FolderProvider } from "./context/FolderContext";
+
 import {
   BrowserRouter,
   Routes,
@@ -49,15 +51,17 @@ function TabNav() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <TabNav />
-      <Routes>
-        <Route path="/" element={<Navigate to="/setup" replace />} />
-        <Route path="/setup" element={<Setup />} />
-        <Route path="/data" element={<Data />} />
-        <Route path="/test" element={<Test />} />
-      </Routes>
-    </BrowserRouter>
+    <FolderProvider>
+      <BrowserRouter>
+        <TabNav />
+        <Routes>
+          <Route path="/" element={<Navigate to="/setup" replace />} />
+          <Route path="/setup" element={<Setup />} />
+          <Route path="/data" element={<Data />} />
+          <Route path="/test" element={<Test />} />
+        </Routes>
+      </BrowserRouter>
+    </FolderProvider>
   );
 }
 

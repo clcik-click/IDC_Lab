@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { FolderUp } from "lucide-react";
 import FolderView from "../components/FolderView_2";
 import EditFileModal from "../components/EditFileModal";
+import { useFolders } from "../context/FolderContext";
 
 declare global {
   interface window{
@@ -32,13 +33,12 @@ declare global {
           folder: FolderKey;
           folderPaths: Record<FolderKey, string>;
         }) => Promise<{ success: boolean; error?: string }>;
-
     }
   }
 }
 
 function Data() {
-  const [folders, setFolders]         = useState<Record<FolderKey, FileItem[]>>({ A: [], B: [], C: [], });
+  const { folders, setFolders } = useFolders();
   const [folderPaths, setFolderPaths] = useState<Record<FolderKey, string>>({A: "", B: "", C: "",});
 
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
