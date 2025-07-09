@@ -6,36 +6,56 @@ import EditFileModal from "../components/EditFileModal";
 import { useFolders } from "../context/FolderContext";
 
 declare global {
-  interface window{
+  interface Window {
     electronAPI: {
-        // File paths
-        pickFolder:   () => Promise<string | null>;
-        loadConfig:   () => Promise<Record<FolderKey, string>>;
-        saveConfig:   (paths: Record<FolderKey, string>) => void;
+      // File paths
+      pickFolder: () => Promise<string | null>;
+      loadConfig: () => Promise<Record<FolderKey, string>>;
+      saveConfig: (paths: Record<FolderKey, string>) => void;
+      setFolderPaths?: (paths: Record<FolderKey, string>) => void;
 
-        // File metadata
-        // loadData:     () => Promise<Record<FolderKey, FileItem[]>>;
-        saveData: (data: { folders: Record<FolderKey, FileItem[]>; folderPaths: Record<FolderKey, string> }) => void;
-        scanFolders:  (paths: Record<FolderKey, string>) => Promise<Record<FolderKey, FileItem[]>>;
-        
+      // File metadata
+      saveData: (data: {
+        folders: Record<FolderKey, FileItem[]>;
+        folderPaths: Record<FolderKey, string>;
+      }) => void;
 
-        moveFile:     (params: { name: string }) => Promise<{ success: boolean; error?: string }>; 
+      scanFolders: (
+        paths: Record<FolderKey, string>
+      ) => Promise<Record<FolderKey, FileItem[]>>;
 
-        importFileBuffer?: (params: {
-          name: string;
-          buffer: number[];
-          toFolder: FolderKey;
-          folderPaths: Record<FolderKey, string>;
-        }) => Promise<{ success: boolean; error?: string }>;
+      moveFile: (params: {
+        name: string;
+        from: FolderKey;
+        to: FolderKey;
+        folderPaths: Record<FolderKey, string>;
+      }) => Promise<{ success: boolean; newName?: string; error?: string }>;
 
-        deleteFile: (params: {
-          name: string;
-          folder: FolderKey;
-          folderPaths: Record<FolderKey, string>;
-        }) => Promise<{ success: boolean; error?: string }>;
-    }
+      deleteFile: (params: {
+        name: string;
+        folder: FolderKey;
+        folderPaths: Record<FolderKey, string>;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      importFileBuffer?: (params: {
+        name: string;
+        buffer: number[];
+        toFolder: FolderKey;
+        folderPaths: Record<FolderKey, string>;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      // Stats for Test tab
+      getStatsFromDB: () => Promise<{
+        totalPrinted: number;
+        totalPartsPrinted: number;
+        avgPrintTime: string;
+        topStudents: { owner: string; count: number }[];
+        topClasses: { class: string; count: number }[];
+      }>;
+    };
   }
 }
+
 
 function Data() {
   const { folders, setFolders } = useFolders();
@@ -56,12 +76,17 @@ function Data() {
   // Step 2: Load saved metadata and scan folders after config is ready
   useEffect(() => {
     if (configReady && (folderPaths.A || folderPaths.B || folderPaths.C)) {
+      // ✅ Tell backend the folder paths for global use (e.g., in stats)
+      window.electronAPI.setFolderPaths(folderPaths);
+
+      // ✅ Then scan the folders to update metadata in UI
       window.electronAPI.scanFolders(folderPaths).then((scanned) => {
         console.log("📂 Scanned folders:", scanned);
         setFolders(scanned);
       });
     }
   }, [folderPaths, configReady]);
+
 
 
   // Step 3: Save updated metadata when folders change

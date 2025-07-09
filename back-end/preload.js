@@ -13,5 +13,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   importFileBuffer: (params) => ipcRenderer.invoke("import-file-buffer", params),
   deleteFile:       (params) => ipcRenderer.invoke("delete-file", params),
 
+  getStatsFromDB:   () => ipcRenderer.invoke("get-stats-db"),
+  setFolderPaths:   (paths) => ipcRenderer.invoke("set-folder-paths", paths),
 });
- 
+  

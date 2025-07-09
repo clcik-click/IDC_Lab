@@ -4,7 +4,8 @@ const Database  = require("better-sqlite3");
 const path      = require("path");
 const fs        = require("fs");
 
-// const dataPath    = path.join(app.getPath("userData"), "data.json");
+global.folderPaths = { A: "", B: "", C: "" };
+
 const configPath  = path.join(app.getPath("userData"), "config.json");
 
 function createWindow() {
@@ -32,34 +33,27 @@ function createWindow() {
   }
 }
 
-// ✅ IPC handlers
-// ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
-//   try {
-//     const fromPath = path.join(folderPaths[from], name);
-//     const baseName = path.parse(name).name;
-//     const ext = path.extname(name);
-//     const targetDir = folderPaths[to];
+// IPC handlers for main process
 
-//     let candidateName = name;
-//     let suffixIndex = 0;
-//     const romanSuffixes = ["_I", "_II", "_III", "_IV", "_V", "_VI", "_VII", "_VIII", "_IX", "_X"];
+////////////////////////////////////////////////////////
+ipcMain.handle("load-config", () => {
+  try {
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    return config;
+  } catch {
+    return { A: "", B: "", C: "" };
+  }
+});
+ipcMain.handle("pick-folder", async () => {
+  const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
+  return result.filePaths?.[0] || null;
+});
+ipcMain.on("save-config", (_event, paths) => {
+  fs.writeFileSync(configPath, JSON.stringify(paths, null, 2), "utf-8");
+});
+////////////////////////////////////////////////////////
 
-//     // Find an available name
-//     while (fs.existsSync(path.join(targetDir, candidateName))) {
-//       suffixIndex += 1;
-//       candidateName = `${baseName}${romanSuffixes[suffixIndex - 1] || `_copy${suffixIndex}`}${ext}`;
-//     }
-
-//     const destPath = path.join(targetDir, candidateName);
-//     fs.renameSync(fromPath, destPath);
-
-//     return { success: true, newName: candidateName };
-//   } catch (err) {
-//     console.error("❌ Failed to move file:", err);
-//     return { success: false, error: err.message };
-//   }
-// });
-
+////////////////////////////////////////////////////////
 ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
   try {
     const fromDir = folderPaths[from];
@@ -119,48 +113,6 @@ ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
   }
 });
 
-
-
-
-// Folder picker dialog
-ipcMain.handle("pick-folder", async () => {
-  const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
-  // console.log("Picked folder:", result.filePaths);
-  return result.filePaths?.[0] || null;
-});
-
-////////////////////////////////////////////////////////
-ipcMain.handle("load-config", () => {
-  try {
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    return config;
-  } catch {
-    return { A: "", B: "", C: "" };
-  }
-});
-ipcMain.on("save-config", (_event, paths) => {
-  fs.writeFileSync(configPath, JSON.stringify(paths, null, 2), "utf-8");
-});
-////////////////////////////////////////////////////////
-
-ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, folderPaths }) => {
-  try {
-    const destDir = folderPaths[toFolder];
-    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-
-    const destPath = path.join(destDir, name);
-    const data = Buffer.from(buffer);  // Reconstruct from array
-    fs.writeFileSync(destPath, data);
-    
-    return { success: true };
-  } catch (err) {
-    console.error("❌ Failed to import buffer:", err);
-    return { success: false, error: err.message };
-  }
-});
-
-
-/////////////////////
 ipcMain.handle("delete-file", async (_event, { name, folder, folderPaths }) => {
   const folderPath = folderPaths[folder];
   const targetPath = path.join(folderPath, name);
@@ -183,7 +135,23 @@ ipcMain.handle("delete-file", async (_event, { name, folder, folderPaths }) => {
   }
 });
 
- 
+ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, folderPaths }) => {
+  try {
+    const destDir = folderPaths[toFolder];
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+    const destPath = path.join(destDir, name);
+    const data = Buffer.from(buffer);  // Reconstruct from array
+    fs.writeFileSync(destPath, data);
+    
+    return { success: true };
+  } catch (err) {
+    console.error("❌ Failed to import buffer:", err);
+    return { success: false, error: err.message };
+  }
+});
+////////////////////////////////////////////////////////
+
 function readSTLFilesFromFolder(folderPath) {
   if (!fs.existsSync(folderPath)) return [];
   const files = fs.readdirSync(folderPath);
@@ -287,3 +255,79 @@ ipcMain.handle("scan-folders", async (_event, folderPaths) => {
 });
 
 app.whenReady().then(createWindow);
+
+
+////////////////////////////////////////////////////////
+ipcMain.handle("get-stats-db", (_event) => {
+  try {
+    const folderCPath = global.folderPaths?.["C"];
+    if (!folderCPath) throw new Error("Folder C not set");
+
+    const dbPath = path.join(folderCPath, "metadata.db");
+    if (!fs.existsSync(dbPath)) {
+      throw new Error("DB file does not exist at: " + dbPath);
+    }
+
+    const db = new Database(dbPath, { readonly: true });
+
+    // Total files printed
+    const totalPrinted = db.prepare("SELECT COUNT(*) as count FROM metadata").get().count;
+
+    // Total parts printed (sum of quantity)
+    const totalPartsPrinted = db.prepare(`
+      SELECT SUM(quantity) as totalParts
+      FROM metadata
+      WHERE quantity IS NOT NULL
+    `).get().totalParts || 0;
+
+    // Average print time
+    const avg = db.prepare(`
+      SELECT AVG(
+        JULIANDAY(dateFinished) - JULIANDAY(dateReceived)
+      ) * 86400.0 as avgSec
+      FROM metadata
+      WHERE dateFinished IS NOT NULL AND TRIM(dateFinished) != ''
+    `).get();
+    const avgSeconds = avg?.avgSec || 0;
+
+    // Top 5 students
+    const topStudents = db.prepare(`
+      SELECT owner, COUNT(*) as count
+      FROM metadata
+      WHERE owner IS NOT NULL AND TRIM(owner) != ''
+      GROUP BY owner
+      ORDER BY count DESC
+      LIMIT 5
+    `).all();
+
+    // Top 5 classes
+    const topClasses = db.prepare(`
+      SELECT class, COUNT(*) as count
+      FROM metadata
+      WHERE class IS NOT NULL AND TRIM(class) != ''
+      GROUP BY class
+      ORDER BY count DESC
+      LIMIT 5
+    `).all();
+
+    db.close();
+
+    return {
+      success: true,
+      totalPrinted,
+      totalPartsPrinted,
+      avgPrintTime: `${Math.round(avgSeconds)} sec`,
+      topStudents,
+      topClasses,
+    };
+  } catch (err) {
+    console.error("❌ Failed to calculate stats:", err);
+    return { success: false, error: err.message };
+  }
+});
+
+
+ipcMain.handle("set-folder-paths", (_e, paths) => {
+  global.folderPaths = paths;
+  console.log("📂 Folder paths updated:", global.folderPaths);
+});
