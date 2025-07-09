@@ -25,13 +25,16 @@ function formatSecondsToHMS(seconds: number) {
 function estimateMemoryUsageMB(obj: any): number {
   const json = JSON.stringify(obj);
   const bytes = new TextEncoder().encode(json).length;
-  return bytes / 1024 / 1024; // convert to MB
+  // console.log("Estimated memory usage in bytes:", bytes);
+  // return bytes / 1024 / 1024; // convert to MB
+  return bytes;
 }
 
 function Test() {
   const { folders } = useFolders();
   const totalFilesDisplaying = Object.values(folders).reduce((sum, arr) => sum + arr.length, 0);
-  const memoryUsageMB = estimateMemoryUsageMB(folders).toFixed(2);
+  // const memoryUsageMB = estimateMemoryUsageMB(folders).toFixed(2);
+  const memoryUsageMB = estimateMemoryUsageMB(folders);
 
   const [dbStats, setDbStats] = useState<{
     totalPrinted: number;
@@ -150,7 +153,7 @@ function Test() {
 
       <div className="bg-white p-6 rounded-xl shadow-md border text-center">
         <div className="text-sm text-gray-500 mb-1">🧠 Memory Used for Metadata</div>
-        <div className="text-3xl font-bold text-purple-600">{memoryUsageMB} MB</div>
+        <div className="text-3xl font-bold text-purple-600">{memoryUsageMB} bytes</div>
       </div>
       <div className="bg-white p-6 rounded-xl shadow-md border text-center">
         <div className="text-sm text-gray-500 mb-1">Designed by</div>

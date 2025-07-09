@@ -329,5 +329,5 @@ ipcMain.handle("get-stats-db", (_event) => {
 
 ipcMain.handle("set-folder-paths", (_e, paths) => {
   global.folderPaths = paths;
-  console.log("📂 Folder paths updated:", global.folderPaths);
+  // console.log("📂 Folder paths updated:", global.folderPaths);
 });
