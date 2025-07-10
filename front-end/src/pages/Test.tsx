@@ -1,19 +1,30 @@
 // src/pages/Test.tsx
 import { useEffect, useState } from "react";
 import { useFolders } from "../context/FolderContext";
-import { Bar } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend,
 } from "chart.js";
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 function formatSecondsToHMS(seconds: number) {
   const h = Math.floor(seconds / 3600);
@@ -33,7 +44,6 @@ function estimateMemoryUsageMB(obj: any): number {
 function Test() {
   const { folders } = useFolders();
   const totalFilesDisplaying = Object.values(folders).reduce((sum, arr) => sum + arr.length, 0);
-  // const memoryUsageMB = estimateMemoryUsageMB(folders).toFixed(2);
   const memoryUsageMB = estimateMemoryUsageMB(folders);
 
   const [dbStats, setDbStats] = useState<{
@@ -42,12 +52,14 @@ function Test() {
     avgPrintTime: string;
     topStudents: { owner: string; count: number }[];
     topClasses: { class: string; count: number }[];
+    trendData: { day: string; count: number }[];
   }>({
     totalPrinted: 0,
     totalPartsPrinted: 0,
     avgPrintTime: "0s",
     topStudents: [],
     topClasses: [],
+    trendData: [],
   });
 
   useEffect(() => {
@@ -83,6 +95,21 @@ function Test() {
     ],
   };
 
+  const trendChartData = {
+    labels: dbStats.trendData.map((d) => d.day),
+    datasets: [
+      {
+        label: "Files Finished",
+        data: dbStats.trendData.map((d) => d.count),
+        borderColor: "rgba(75, 192, 192, 1)",
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+      },
+    ],
+  };
+
   const chartOptions = (title: string, xLabel: string, yLabel: string) => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -99,6 +126,14 @@ function Test() {
     },
     scales: {
       x: {
+        ticks: {
+          autoSkip: false,     // Show all labels (optional — disable for long lists)
+          maxRotation: 45,     // Rotate to vertical
+          minRotation: 0,
+          font: {
+            size: 10,
+          },
+        },
         title: {
           display: true,
           text: xLabel,
@@ -119,14 +154,21 @@ function Test() {
     },
   });
 
+
   return (
 <div className="p-8 bg-gray-50 min-h-screen flex flex-col items-center space-y-8">
   <h2 className="text-4xl font-bold text-blue-700 text-center tracking-wide w-full max-w-6xl">
     📊 3D Print Dashboard
   </h2>
 
-  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full max-w-6xl">
+  <div className="w-full max-w-6xl h-[400px] mt-6 bg-white p-4 rounded-xl shadow-md border">
+    <Line
+      data={trendChartData}
+      options={chartOptions("Daily Files Finished", "Day", "Files Printed")}
+    />
+  </div>
 
+  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full max-w-6xl">
 
     {/* Left column – 4 stacked metric boxes */}
     <div className="flex flex-col space-y-6 col-span-1">
@@ -155,6 +197,7 @@ function Test() {
         <div className="text-sm text-gray-500 mb-1">🧠 Memory Used for Metadata</div>
         <div className="text-3xl font-bold text-purple-600">{memoryUsageMB} bytes</div>
       </div>
+
       <div className="bg-white p-6 rounded-xl shadow-md border text-center">
         <div className="text-sm text-gray-500 mb-1">Designed by</div>
         <div className="text-3xl font-bold text-purple-600">Hoan Lam</div>

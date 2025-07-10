@@ -124,7 +124,7 @@ export default function FolderView({
       }}
       onDrop={handleDrop}
     >
-      <h2 className="text-lg font-semibold mb-2">{title}</h2>
+      {/* <h2 className="text-lg font-semibold mb-2">{title}</h2> */}
 
       <ul>
         {files.map((file, i) => (

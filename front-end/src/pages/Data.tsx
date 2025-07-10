@@ -51,6 +51,7 @@ declare global {
         avgPrintTime: string;
         topStudents: { owner: string; count: number }[];
         topClasses: { class: string; count: number }[];
+        trendData: { day: string; count: number }[];
       }>;
     };
   }

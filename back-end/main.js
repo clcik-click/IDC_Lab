@@ -154,14 +154,24 @@ ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, fo
 
 function readSTLFilesFromFolder(folderPath) {
   if (!fs.existsSync(folderPath)) return [];
-  const files = fs.readdirSync(folderPath);
-  return files
+
+  const files = fs.readdirSync(folderPath)
     .filter((f) => f.toLowerCase().endsWith(".stl"))
-    .map((filename) => ({
-      name: filename,
-      fullPath: path.join(folderPath, filename),
-    }));
+    .map((filename) => {
+      const fullPath = path.join(folderPath, filename);
+      const stats = fs.statSync(fullPath);
+      return {
+        name: filename,
+        fullPath,
+        modifiedTime: stats.mtime, // or stats.ctime for creation time
+      };
+    })
+    .sort((a, b) => b.modifiedTime - a.modifiedTime) // newest first
+    .slice(0, 50); // limit to 50
+
+  return files.map(({ name, fullPath }) => ({ name, fullPath }));
 }
+
 
 function getDB(folderPath) {
   const dbPath = path.join(folderPath, "metadata.db");
@@ -310,7 +320,18 @@ ipcMain.handle("get-stats-db", (_event) => {
       LIMIT 5
     `).all();
 
+    // Trend chart 
+     const trendData = db.prepare(`
+      SELECT DATE(dateFinished) AS day, COUNT(*) AS count
+      FROM metadata
+      WHERE dateFinished IS NOT NULL AND TRIM(dateFinished) != ''
+      GROUP BY day
+      ORDER BY day
+    `).all();
+
     db.close();
+
+    console.log("trend data:", trendData);
 
     return {
       success: true,
@@ -319,6 +340,7 @@ ipcMain.handle("get-stats-db", (_event) => {
       avgPrintTime: `${Math.round(avgSeconds)} sec`,
       topStudents,
       topClasses,
+      trendData,
     };
   } catch (err) {
     console.error("❌ Failed to calculate stats:", err);
@@ -329,5 +351,4 @@ ipcMain.handle("get-stats-db", (_event) => {
 
 ipcMain.handle("set-folder-paths", (_e, paths) => {
   global.folderPaths = paths;
-  // console.log("📂 Folder paths updated:", global.folderPaths);
 });
