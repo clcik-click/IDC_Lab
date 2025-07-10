@@ -1,1 +1,46 @@
 @import "tailwindcss";
+
+@layer utilities {
+    
+    @keyframes dimlight {
+        0%, 18%, 20%, 50.1%, 60%, 65.1%, 80%, 90.1%, 92% {
+        color: #900b92;
+        box-shadow: none;
+        }
+        18.1%, 20.1%, 30%, 50%, 60.1%, 65%, 80.1%, 90%, 92.1%, 100% {
+        color: #fff;
+        text-shadow: 0 0 10px #dd40ee;
+        }
+    }
+
+    .animate-dimlight {
+        animation: dimlight 5s infinite;
+    }
+
+    .box-reflect {
+        -webkit-box-reflect: below 1px linear-gradient(transparent, #0004);
+    }
+
+}
+
+/* Apply to all scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #93c5fd; /* Tailwind blue-300 */
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #60a5fa; /* Tailwind blue-400 */
+}
+

@@ -1,7 +1,7 @@
 import type { FileItem, FolderKey} from "../types/FileItem";
 import { useEffect, useState } from "react";
 import { FolderUp } from "lucide-react";
-import FolderView from "../components/FolderView_2";
+import FolderView from "../components/FolderView";
 import EditFileModal from "../components/EditFileModal";
 import { useFolders } from "../context/FolderContext";
 

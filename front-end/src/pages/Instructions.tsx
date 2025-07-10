@@ -1,8 +1,9 @@
+import ComingSoon from "../components/ComingSoon";
+
 function Instructions () {
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Instructions</h1>
-      <p className="text-gray-600">This page is under construction.</p>
+      <ComingSoon />
     </div>
   );
 }

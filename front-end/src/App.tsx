@@ -60,7 +60,7 @@ function App() {
           <Route path="/main" element={<Main />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/notes" element={<Notes />} />
-          <Route path="/instruction" element={<Instructions />} />
+          <Route path="/instructions" element={<Instructions />} />
         </Routes>
       </BrowserRouter>
     </FolderProvider>

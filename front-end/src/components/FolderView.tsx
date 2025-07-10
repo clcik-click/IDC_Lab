@@ -111,65 +111,63 @@ export default function FolderView({
 
   return (
     <div
-      className={`flex-1 min-w-[200px] p-4 border rounded bg-gray-100 h-[80vh] overflow-scroll transition ${
-        highlight ? "border-blue-500 bg-blue-50" : ""
-      }`}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setHighlight(true);
-      }}
-      onDragLeave={() => {
-        setHighlight(false);
-        setHoveredIndex(null);
-      }}
-      onDrop={handleDrop}
-    >
-      {/* <h2 className="text-lg font-semibold mb-2">{title}</h2> */}
+  className={`flex-1 min-w-[200px] p-4 border rounded bg-gray-100 h-[80vh] overflow-scroll transition-colors duration-200
+    ${highlight ? "border-blue-500 bg-blue-50" : "border-gray-300"}
+  `}
+  onDragOver={(e) => {
+    e.preventDefault();
+    setHighlight(true);
+  }}
+  onDragLeave={() => {
+    setHighlight(false);
+    setHoveredIndex(null);
+  }}
+  onDrop={handleDrop}
+>
+  <ul className="space-y-2">
+    {files.map((file, i) => (
+      <li
+        key={file.id}
+        draggable
+        onDragStart={(e) => handleFileDragStart(e, file, folderId, i)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setHoveredIndex(i);
+        }}
+        onClick={() => toggleSelect(file)}
+        onDoubleClick={() => onClickFile(file)}
+        className={`relative p-3 rounded-md text-sm cursor-pointer transition-all duration-200 shadow-sm
+          ${
+            globalDuplicateIds.has(file.id)
+              ? "bg-orange-100 ring-2 ring-orange-400"
+              : selectedIds.has(file.id)
+              ? "bg-blue-100 ring-2 ring-blue-400"
+              : "bg-white hover:bg-gray-50"
+          }
+          ${hoveredIndex === i ? "ring-2 ring-blue-300 scale-[1.01]" : ""}
+          active:scale-[0.98] drag-shadow
+        `}
+        title={`Owner: ${file.owner || "?"}\nClass: ${file.class || "?"}\nQuantity: ${file.quantity ?? "-"}`}
+      >
+        {file.name}
+        <span className="text-gray-500 text-xs block">
+          {file.owner || "Owner"} - {file.class || "Class"} - {file.quantity || "Quantity"}
+        </span>
 
-      <ul>
-        {files.map((file, i) => (
-          <li
-            key={file.id}
-            draggable
-            onDragStart={(e) => handleFileDragStart(e, file, folderId, i)}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setHoveredIndex(i);
-            }}
-            onClick={() => toggleSelect(file)}
-            onDoubleClick={() => onClickFile(file)}
-            
-            className={`relative p-2 mb-2 rounded shadow text-sm cursor-pointer transition
-              ${
-                globalDuplicateIds.has(file.id)
-                  ? "bg-orange-100 ring-2 ring-orange-400"
-                  : selectedIds.has(file.id)
-                  ? "bg-blue-100 ring-2 ring-blue-400"
-                  : "bg-white hover:bg-gray-50"
-              }
-              ${hoveredIndex === i ? "ring-2 ring-blue-300" : ""}
-            `}
-            title={`Owner: ${file.owner || "?"}\nClass: ${file.class || "?"}\nQuantity: ${file.quantity ?? "-"}`}
-          >
-            {file.name}
-            <span className="text-gray-500 text-xs block">
-              {file.owner || "Owner"} - {file.class || "Class"} - {file.quantity || "Quantity"}
-            </span>
+        <button
+          className="absolute top-1 right-1 text-gray-400 hover:text-red-600 text-sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteFile(file, folderId);
+          }}
+          title="Delete"
+        >
+          <X size={20} />
+        </button>
+      </li>
+    ))}
+  </ul>
+</div>
 
-            <button
-              className="absolute top-1 right-1 text-gray-400 hover:text-red-600 text-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteFile(file, folderId);
-              }}
-              title="Delete"
-            >
-              <X size={20} />
-            </button>
-          </li>
-
-        ))}
-      </ul>
-    </div>
   );
 }
