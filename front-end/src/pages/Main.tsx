@@ -58,7 +58,7 @@ declare global {
 }
 
 
-function Data() {
+function Main() {
   const { folders, setFolders } = useFolders();
   const [folderPaths, setFolderPaths] = useState<Record<FolderKey, string>>({A: "", B: "", C: "",});
 
@@ -245,69 +245,75 @@ function Data() {
   }
 
   return (
-    <div className="p-6 space-y-4"> 
+    <div className="p-6 space-y-4">
 
-    {/* Drop Area */}
-      <div id="drop-area" className="text-center w-full h-full border-2 border-dashed p-4">
-        Drop here
-      </div>
+  {/* Drop Area */}
+  <div
+    id="drop-area"
+    className="text-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center"
+  >
+    Drop files here
+  </div>
 
-      <div className="flex gap-4">
-        {(["A", "B", "C"] as FolderKey[]).map((key) => {
-          const folderLabel =
-            key === "A" ? "Queue" : key === "B" ? "In Progress" : "Done";
+  <div className="flex gap-4">
+    {(["A", "B", "C"] as FolderKey[]).map((key) => {
+      const folderLabel =
+        key === "A" ? "Queue" : key === "B" ? "In Progress" : "Done";
 
-          return (
-            <div key={key} className="flex-1 space-y-2">
-              {/* Header: Folder title and pick button */}
-              <div className="flex border h-20 w-full items-center">
-                {/* Left: Folder label + current path */}
-                <div className="flex-1 flex flex-col items-center justify-center">
-                  <div className="text-3xl">{folderLabel}</div>
-                  <div className="text-sm text-gray-500 truncate max-w-full px-2">
-                    {folderPaths[key]?.split(/[\\/]/).pop() || "Not set"}
-                  </div>
-                </div>
-
-                {/* Right: Pick folder button */}
-                <button
-                  onClick={() => handlePickFolder(key)}
-                  className="w-20 h-full bg-blue-100 border-l border-blue-400 
-                            flex items-center justify-center 
-                            hover:bg-blue-200 active:bg-blue-300 
-                            transition-colors duration-200"
-                  title={folderPaths[key] ? folderPaths[key] : "Pick folder"}
-                >
-                  <FolderUp size={36} />
-                </button>
+      return (
+        <div key={key} className="flex-1 space-y-2">
+          {/* Header: Folder title and pick button */}
+          <div className="flex items-center border border-gray-300 rounded-md bg-white h-20 shadow-sm">
+            {/* Left: Folder label + current path */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="text-xl font-semibold text-gray-800">
+                {folderLabel}
               </div>
-
-              {/* Folder content */}
-              <FolderView
-                title={`${folderLabel} (${key})`}
-                folderId={key}
-                files={folders[key]}
-                allFiles={folders} // ✅ Pass all folders for global duplicate checking
-                onClickFile={setSelectedFile}
-                onDropFile={(file, from, originalIndex, dropIndex) =>
-                  handleDropFile(file, from as FolderKey, key, originalIndex, dropIndex)
-                }
-                onDeleteFile={handleDeleteFile}
-              />
+              <div className="text-sm text-gray-500 truncate max-w-full px-2">
+                {folderPaths[key]?.split(/[\\/]/).pop() || "Not set"}
+              </div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Metadata modal */}
-      <EditFileModal
-        file    = {selectedFile}
-        onClose = {() => setSelectedFile(null)}
-        onSave  = {handleSaveMetadata}
-      />    
+            {/* Right: Pick folder button */}
+            <button
+              onClick={() => handlePickFolder(key)}
+              className="w-20 h-full bg-blue-100 border-l border-blue-300 
+                         flex items-center justify-center 
+                         hover:bg-blue-200 active:bg-blue-300 
+                         transition-colors duration-200 rounded-r-md"
+              title={folderPaths[key] || "Pick folder"}
+            >
+              <FolderUp size={28} className="text-blue-600" />
+            </button>
+          </div>
 
-    </div>
+          {/* Folder content */}
+          <FolderView
+            title={`${folderLabel} (${key})`}
+            folderId={key}
+            files={folders[key]}
+            allFiles={folders}
+            onClickFile={setSelectedFile}
+            onDropFile={(file, from, originalIndex, dropIndex) =>
+              handleDropFile(file, from as FolderKey, key, originalIndex, dropIndex)
+            }
+            onDeleteFile={handleDeleteFile}
+          />
+        </div>
+      );
+    })}
+  </div>
+
+  {/* Metadata modal */}
+  <EditFileModal
+    file={selectedFile}
+    onClose={() => setSelectedFile(null)}
+    onSave={handleSaveMetadata}
+  />
+</div>
+
+
   );
 };
 
-export default Data;
+export default Main;

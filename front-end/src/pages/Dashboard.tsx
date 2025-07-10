@@ -41,7 +41,7 @@ function estimateMemoryUsageMB(obj: any): number {
   return bytes;
 }
 
-function Test() {
+function Dashboard() {
   const { folders } = useFolders();
   const totalFilesDisplaying = Object.values(folders).reduce((sum, arr) => sum + arr.length, 0);
   const memoryUsageMB = estimateMemoryUsageMB(folders);
@@ -156,81 +156,57 @@ function Test() {
 
 
   return (
-<div className="p-8 bg-gray-50 min-h-screen flex flex-col items-center space-y-8">
-  <h2 className="text-4xl font-bold text-blue-700 text-center tracking-wide w-full max-w-6xl">
-    📊 3D Print Dashboard
-  </h2>
 
-  <div className="w-full max-w-6xl h-[400px] mt-6 bg-white p-4 rounded-xl shadow-md border">
-    <Line
-      data={trendChartData}
-      options={chartOptions("Daily Files Finished", "Day", "Files Printed")}
-    />
-  </div>
+<div className="bg-gray-50 min-h-screen py-10">
+  <div className="max-w-7xl mx-auto px-6 flex flex-col space-y-10">
 
-  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full max-w-6xl">
-
-    {/* Left column – 4 stacked metric boxes */}
-    <div className="flex flex-col space-y-6 col-span-1">
-
-      <div className="bg-white p-6 rounded-xl shadow-md border text-center">
-        <div className="text-sm text-gray-500 mb-1">🧩 Total Parts Printed</div>
-        <div className="text-3xl font-bold text-pink-600">{dbStats.totalPartsPrinted}</div>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-md border text-center">
-        <div className="text-sm text-gray-500 mb-1">✅ Files Printed (Folder C)</div>
-        <div className="text-3xl font-bold text-blue-600">{dbStats.totalPrinted}</div>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-md border text-center">
-        <div className="text-sm text-gray-500 mb-1">⏱️ Average Print Time</div>
-        <div className="text-3xl font-bold text-orange-500">{dbStats.avgPrintTime}</div>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-md border text-center">
-        <div className="text-sm text-gray-500 mb-1">🟢 Total Files Displayed</div>
-        <div className="text-3xl font-bold text-green-600">{totalFilesDisplaying}</div>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-md border text-center">
-        <div className="text-sm text-gray-500 mb-1">🧠 Memory Used for Metadata</div>
-        <div className="text-3xl font-bold text-purple-600">{memoryUsageMB} bytes</div>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-md border text-center">
-        <div className="text-sm text-gray-500 mb-1">Designed by</div>
-        <div className="text-3xl font-bold text-purple-600">Hoan Lam</div>
-      </div>
-
+    {/* Trend Chart */}
+    <div className="w-full h-[400px] bg-white p-6 rounded-xl shadow border border-gray-200">
+      <Line
+        data={trendChartData}
+        options={chartOptions("Daily Files Finished", "Day", "Files Printed")}
+      />
     </div>
 
-    {/* Right column – 2 large charts */}
-    <div className="col-span-1 md:col-span-2 lg:col-span-3">
-      <div className="flex flex-col h-full min-h-[640px] space-y-6">
+    {/* Grid Layout */}
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
-        <div className="bg-white p-6 rounded-xl shadow-md border flex-1">
-          <div className="h-full">
-            <Bar
-              data={studentChartData}
-              options={chartOptions("Top 5 Students", "Student", "Print Count")}
-            />
+      {/* Left Column – Stats */}
+      <div className="flex flex-col space-y-4 col-span-1">
+        {[
+          ["🧩 Total Parts Printed", dbStats.totalPartsPrinted, "text-pink-600"],
+          ["✅ Files Printed (Folder C)", dbStats.totalPrinted, "text-blue-600"],
+          ["⏱️ Average Print Time", dbStats.avgPrintTime, "text-orange-500"],
+          ["🟢 Total Files Displayed", totalFilesDisplaying, "text-green-600"],
+          ["🧠 Memory Used for Metadata", `${memoryUsageMB} bytes`, "text-purple-600"],
+          ["Designed by", "Hoan Lam", "text-purple-600"],
+        ].map(([label, value, color]) => (
+          <div
+            key={label as string}
+            className="bg-white p-4 rounded-xl shadow border border-gray-200 text-center"
+          >
+            <div className="text-sm text-gray-500 mb-1">{label}</div>
+            <div className={`text-2xl font-semibold ${color}`}>{value}</div>
           </div>
-        </div>
+        ))}
+      </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-md border flex-1">
-          <div className="h-full">
-            <Bar
-              data={classChartData}
-              options={chartOptions("Top 5 Classes", "Class", "Print Count")}
-            />
-          </div>
+      {/* Right Column – Charts */}
+      <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow border border-gray-200 h-[300px]">
+          <Bar
+            data={studentChartData}
+            options={chartOptions("Top 5 Students", "Student", "Print Count")}
+          />
         </div>
-
+        <div className="bg-white p-6 rounded-xl shadow border border-gray-200 h-[300px]">
+          <Bar
+            data={classChartData}
+            options={chartOptions("Top 5 Classes", "Class", "Print Count")}
+          />
+        </div>
       </div>
     </div>
-
-
   </div>
 </div>
 
@@ -238,4 +214,4 @@ function Test() {
   );
 }
 
-export default Test;
+export default Dashboard;
