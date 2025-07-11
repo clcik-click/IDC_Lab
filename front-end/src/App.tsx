@@ -3,7 +3,7 @@ import { FolderProvider } from "./context/FolderContext";
 import { Home, BarChart2, StickyNote, BookOpen } from "lucide-react"; // icon
 
 import {
-  BrowserRouter,
+  HashRouter,
   Routes,
   Route,
   Navigate,
@@ -53,7 +53,7 @@ function TabNav() {
 function App() {
   return (
     <FolderProvider>
-      <BrowserRouter>
+      <HashRouter>
         <TabNav />
         <Routes>
           <Route path="/" element={<Navigate to="/main" replace />} />
@@ -62,7 +62,7 @@ function App() {
           <Route path="/notes" element={<Notes />} />
           <Route path="/instructions" element={<Instructions />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </FolderProvider>
   );
 }

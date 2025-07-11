@@ -1,1 +1,50 @@
-{"main":"back-end/main.js","scripts":{"dev":"concurrently \"npm --prefix front-end run dev\" \"wait-on http://localhost:5173 && electron .\"","build":"npm --prefix front-end run build","start":"electron ."},"devDependencies":{"concurrently":"^9.1.2","electron":"^36.5.0","electron-rebuild":"^3.2.9","wait-on":"^8.0.3"},"dependencies":{"better-sqlite3":"^12.2.0","chart.js":"^4.5.0","lucide":"^0.523.0","lucide-react":"^0.523.0","react-chartjs-2":"^5.3.0","recharts":"^3.1.0"}}
+{
+  "name": "idc-lab-app",
+  "version": "1.0.0",
+  "description": "3D printing queue manager",
+  "author": "Hoan Lam",
+  "main": "back-end/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm --prefix front-end run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "npm --prefix front-end run build",
+    "start": "electron .",
+    "dist": "set ELECTRON_BUILDER_DISABLE_CODE_SIGNING=true && npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.example.myapp",
+    "productName": "3DPrintManager",
+    "files": [
+      "back-end/**/*",
+      "front-end/dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "extraResources": [],
+    "asar": true,
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": [],
+      "sign": false
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^36.5.0",
+    "electron-builder": "^24.14.1",
+    "electron-rebuild": "^3.2.9",
+    "wait-on": "^8.0.3"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "chart.js": "^4.5.0",
+    "lucide": "^0.523.0",
+    "lucide-react": "^0.523.0",
+    "react-chartjs-2": "^5.3.0",
+    "recharts": "^3.1.0"
+  }
+}

@@ -3,7 +3,7 @@ import type { FileItem, FolderKey } from "../types/FileItem";
 import { X } from "lucide-react";
 
 interface FolderViewProps {
-  title: string;
+  // title: string;
   folderId: FolderKey;
   files: FileItem[];
   allFiles: Record<FolderKey, FileItem[]>; // 🆕
@@ -18,7 +18,7 @@ interface FolderViewProps {
 }
 
 export default function FolderView({
-  title,
+  // title,
   folderId,
   files,
   allFiles,

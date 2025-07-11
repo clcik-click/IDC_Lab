@@ -86,7 +86,7 @@ export default function EditFileModal({ file, onClose, onSave }: EditFileModalPr
           Received: {new Date(form.dateReceived).toLocaleString()}
         </p>
         <p className="text-sm text-gray-500">
-          Finished: {new Date(form.dateFinished).toLocaleString()}
+          Finished: {form.dateFinished ? new Date(form.dateFinished).toLocaleString() : "In progress"}
         </p>
 
         {/* Action Buttons */}

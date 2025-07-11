@@ -53,6 +53,7 @@ declare global {
         topClasses: { class: string; count: number }[];
         trendData: { day: string; count: number }[];
       }>;
+
     };
   }
 }
@@ -78,7 +79,9 @@ function Main() {
   useEffect(() => {
     if (configReady && (folderPaths.A || folderPaths.B || folderPaths.C)) {
       // ✅ Tell backend the folder paths for global use (e.g., in stats)
-      window.electronAPI.setFolderPaths(folderPaths);
+      if (window.electronAPI?.setFolderPaths) {
+        window.electronAPI.setFolderPaths(folderPaths);
+      }
 
       // ✅ Then scan the folders to update metadata in UI
       window.electronAPI.scanFolders(folderPaths).then((scanned) => {
@@ -289,7 +292,7 @@ function Main() {
 
           {/* Folder content */}
           <FolderView
-            title={`${folderLabel} (${key})`}
+            // title={`${folderLabel} (${key})`}
             folderId={key}
             files={folders[key]}
             allFiles={folders}
