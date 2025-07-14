@@ -1,13 +1,24 @@
+// app            ~ controls the life cycle of the app
+// BrowserWindow  ~ creates and manages windows
+// ipcMain        ~ handles IPC communication from renderer process
+// dialog         ~ shows native system dialogs ~ for file picking
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 
-const Database  = require("better-sqlite3");
-const path      = require("path");
-const fs        = require("fs");
+// Better SQLite3 for database operations
+const Database      = require("better-sqlite3");
 
-global.folderPaths = { A: "", B: "", C: "" };
+// Path module for handling file paths
+const path          = require("path");
 
-const configPath  = path.join(app.getPath("userData"), "config.json");
+// File system operations
+const fs            = require("fs");
 
+global.folderPaths  = { A: "", B: "", C: "" };
+
+// app.getPath("userData") gives a default location for storing app data
+const configPath    = path.join(__dirname, "../config-data/config.json");
+
+// Needs double checking before integrating into dist-app
 function createWindow() {
   const isDev = !app.isPackaged;
 
@@ -15,17 +26,19 @@ function createWindow() {
     width: 1000,
     height: 700,
     webPreferences: {
+      // Isolate front-end from back-end
       contextIsolation: true,
+      // Enable IPC communication
       preload: path.join(__dirname, "preload.js"),
-      sandbox: false,           // ✅ Needed to access file paths
-      nodeIntegration: false,   // ✅ Recommended for security
-      devTools: true,
+      devTools: isDev, // only open devtools in dev mode
     },
   });
 
   if (isDev) {
     console.log("🔧 Running in development mode");
     win.loadURL("http://localhost:5173");
+
+    // Open dev tools ~ inspect elements, console, etc.
     win.webContents.openDevTools();
   } else {
     console.log("🚀 Running in production mode");
@@ -33,10 +46,26 @@ function createWindow() {
   }
 }
 
-// IPC handlers for main process
+app.whenReady().then(createWindow);
+
+// IPC handlers 
+
 
 ////////////////////////////////////////////////////////
-ipcMain.handle("load-config", () => {
+// Open a dialog for folder picking
+ipcMain.handle("pick-folder", async () => {
+  const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
+  return result.filePaths?.[0] || null;
+});
+// Save the folder paths to config file
+ipcMain.on("save-config", async (_e, paths) => {
+  fs.writeFileSync(configPath, JSON.stringify(paths, null, 2), "utf-8");
+});
+////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////
+ipcMain.handle("load-config", async () => {
   try {
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
     return config;
@@ -44,17 +73,14 @@ ipcMain.handle("load-config", () => {
     return { A: "", B: "", C: "" };
   }
 });
-ipcMain.handle("pick-folder", async () => {
-  const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
-  return result.filePaths?.[0] || null;
-});
-ipcMain.on("save-config", (_event, paths) => {
-  fs.writeFileSync(configPath, JSON.stringify(paths, null, 2), "utf-8");
+ipcMain.handle("set-folder-paths", async (_e, paths) => {
+  global.folderPaths = paths;
 });
 ////////////////////////////////////////////////////////
 
+
 ////////////////////////////////////////////////////////
-ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
+ipcMain.handle("move-file", async (_e, { name, from, to, folderPaths }) => {
   try {
     const fromDir = folderPaths[from];
     const toDir = folderPaths[to];
@@ -113,7 +139,7 @@ ipcMain.handle("move-file", async (_event, { name, from, to, folderPaths }) => {
   }
 });
 
-ipcMain.handle("delete-file", async (_event, { name, folder, folderPaths }) => {
+ipcMain.handle("delete-file", async (_e, { name, folder, folderPaths }) => {
   const folderPath = folderPaths[folder];
   const targetPath = path.join(folderPath, name);
 
@@ -152,30 +178,11 @@ ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, fo
 });
 ////////////////////////////////////////////////////////
 
-function readSTLFilesFromFolder(folderPath) {
-  if (!fs.existsSync(folderPath)) return [];
 
-  const files = fs.readdirSync(folderPath)
-    .filter((f) => f.toLowerCase().endsWith(".stl"))
-    .map((filename) => {
-      const fullPath = path.join(folderPath, filename);
-      const stats = fs.statSync(fullPath);
-      return {
-        name: filename,
-        fullPath,
-        modifiedTime: stats.mtime, // or stats.ctime for creation time
-      };
-    })
-    .sort((a, b) => b.modifiedTime - a.modifiedTime) // newest first
-    .slice(0, 50); // limit to 50
-
-  return files.map(({ name, fullPath }) => ({ name, fullPath }));
-}
-
-
+////////////////////////////////////////////////////////
 function getDB(folderPath) {
-  const dbPath = path.join(folderPath, "metadata.db");
-  const db = new Database(dbPath);
+  const dbPath  = path.join(folderPath, "metadata.db");
+  const db      = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.prepare(`
     CREATE TABLE IF NOT EXISTS metadata (
@@ -192,13 +199,6 @@ function getDB(folderPath) {
     )
   `).run();
   return db;
-}
-
-function loadMetadataFromDB(folderPath) {
-  const db = getDB(folderPath);
-  const rows = db.prepare("SELECT * FROM metadata").all();
-  db.close();
-  return rows;
 }
 
 function saveMetadataToDB(folderPath, data) {
@@ -221,18 +221,62 @@ function saveMetadataToDB(folderPath, data) {
   db.close();
 }
 
-ipcMain.on("save-data", (_event, { folders, folderPaths }) => {
+ipcMain.on("save-data", (_event, folders) => {
   for (const key of ["A", "B", "C"]) {
-    saveMetadataToDB(folderPaths[key], folders[key]);
+    saveMetadataToDB(global.folderPaths[key], folders[key]);
   }
 });
 
-ipcMain.handle("scan-folders", async (_event, folderPaths) => {
+function readSTLFilesFromFolder(folderPath) {
+  // Step 1: Check if folder exists
+  if (!fs.existsSync(folderPath)) return [];
+
+  // Step 2: Read all file names in the folder
+  const allFilenames = fs.readdirSync(folderPath);
+
+  // Step 3: Filter only `.stl` files (case-insensitive)
+  const stlFilenames = allFilenames.filter((f) =>
+    f.toLowerCase().endsWith(".stl")
+  );
+
+  // Step 4: Build file info objects
+  const fileData = stlFilenames.map((filename) => {
+    const fullPath  = path.join(folderPath, filename);    // full file path
+    const stats     = fs.statSync(fullPath);              // file metadata
+    return {
+      name: filename,
+      fullPath,
+      modifiedTime: stats.mtime,                          // last modified time
+    };
+  });
+
+  // Step 5: Sort by modifiedTime (newest first)
+  const sorted  = fileData.sort((a, b) => b.modifiedTime - a.modifiedTime);
+
+  // Step 6: Limit to 50 files
+  const limited = sorted.slice(0, 50);
+
+  // Step 7: Return only name + fullPath
+  return limited.map(({ name, fullPath }) => ({ name, fullPath }));
+}
+
+function loadMetadataFromDB(folderPath) {
+  const db    = getDB(folderPath);
+  const rows  = db.prepare("SELECT * FROM metadata").all();
+  db.close();
+  return rows;
+}
+
+ipcMain.handle("scan-folders", async (_event) => {
   const result = { A: [], B: [], C: [] };
 
   for (const key of ["A", "B", "C"]) {
-    const folder    = folderPaths[key];
+    const folder    = global.folderPaths[key];
+
+    // files ~ names of .stl files in the folder and their full paths
     const files     = readSTLFilesFromFolder(folder);
+
+    // 
     const metadata  = loadMetadataFromDB(folder);
 
     result[key] = files.map(({ name, fullPath }) => {
@@ -263,8 +307,7 @@ ipcMain.handle("scan-folders", async (_event, folderPaths) => {
 
   return result;
 });
-
-app.whenReady().then(createWindow);
+////////////////////////////////////////////////////////
 
 
 ////////////////////////////////////////////////////////
@@ -331,7 +374,7 @@ ipcMain.handle("get-stats-db", (_event) => {
 
     db.close();
 
-    console.log("trend data:", trendData);
+    // console.log("trend data:", trendData);
 
     return {
       success: true,
@@ -349,6 +392,4 @@ ipcMain.handle("get-stats-db", (_event) => {
 });
 
 
-ipcMain.handle("set-folder-paths", (_e, paths) => {
-  global.folderPaths = paths;
-});
+

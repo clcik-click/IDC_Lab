@@ -8,21 +8,16 @@ import { useFolders } from "../context/FolderContext";
 declare global {
   interface Window {
     electronAPI: {
-      // File paths
+      // Run at startup
+      loadConfig:     () => Promise<Record<FolderKey, string>>;
+      setFolderPaths: (paths: Record<FolderKey, string>) => void;
+      scanFolders:    () => Promise<Record<FolderKey, FileItem[]>>;
+      saveData:       (folders: Record<FolderKey, FileItem[]>) => void;
+
+      //
       pickFolder: () => Promise<string | null>;
-      loadConfig: () => Promise<Record<FolderKey, string>>;
       saveConfig: (paths: Record<FolderKey, string>) => void;
-      setFolderPaths?: (paths: Record<FolderKey, string>) => void;
-
-      // File metadata
-      saveData: (data: {
-        folders: Record<FolderKey, FileItem[]>;
-        folderPaths: Record<FolderKey, string>;
-      }) => void;
-
-      scanFolders: (
-        paths: Record<FolderKey, string>
-      ) => Promise<Record<FolderKey, FileItem[]>>;
+      //
 
       moveFile: (params: {
         name: string;
@@ -44,7 +39,6 @@ declare global {
         folderPaths: Record<FolderKey, string>;
       }) => Promise<{ success: boolean; error?: string }>;
 
-      // Stats for Test tab
       getStatsFromDB: () => Promise<{
         totalPrinted: number;
         totalPartsPrinted: number;
@@ -58,19 +52,19 @@ declare global {
   }
 }
 
-
 function Main() {
-  const { folders, setFolders } = useFolders();
-  const [folderPaths, setFolderPaths] = useState<Record<FolderKey, string>>({A: "", B: "", C: "",});
+  const [configReady, setConfigReady]   = useState(false);
+  const [folderPaths, setFolderPaths]   = useState<Record<FolderKey, string>>({A: "", B: "", C: "",});
+  const { folders, setFolders }         = useFolders();
+  
 
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
-  const [configReady, setConfigReady] = useState(false);
+  
 
-  // Step 1: Load config once
+  // Step 1: Load config at startup
   useEffect(() => {
     window.electronAPI.loadConfig().then((config) => {
       setFolderPaths(config);
-      // console.log("Loaded folder paths:", config);
       setConfigReady(true);
     });
   }, []);
@@ -78,27 +72,21 @@ function Main() {
   // Step 2: Load saved metadata and scan folders after config is ready
   useEffect(() => {
     if (configReady && (folderPaths.A || folderPaths.B || folderPaths.C)) {
-      // ✅ Tell backend the folder paths for global use (e.g., in stats)
-      if (window.electronAPI?.setFolderPaths) {
-        window.electronAPI.setFolderPaths(folderPaths);
-      }
-
-      // ✅ Then scan the folders to update metadata in UI
-      window.electronAPI.scanFolders(folderPaths).then((scanned) => {
-        console.log("📂 Scanned folders:", scanned);
+      // Tell backend the folder paths for global use
+      window.electronAPI.setFolderPaths(folderPaths);
+      
+      // Then scan the folders to update metadata in UI
+      window.electronAPI.scanFolders().then((scanned) => {
         setFolders(scanned);
       });
     }
   }, [folderPaths, configReady]);
 
-
-
   // Step 3: Save updated metadata when folders change
   useEffect(() => {
     const isEmpty = Object.values(folders).every(arr => arr.length === 0);
     if (!isEmpty) {
-      window.electronAPI.saveData({ folders, folderPaths });
-      // console.log("💾 Saved metadata:", folders);
+      window.electronAPI.saveData(folders);
     }
   }, [folders]);
 
@@ -150,14 +138,17 @@ function Main() {
     };
   }, [folderPaths]);
 
-  // Handle picking a folder path
+  // Handle picking a folder
+  // Except a FolderKey ("A", "B", "C")
+  // Calls the backend to open a dialog for folder picking
+  // Updates the folderPaths state with the selected path
+  // Saves the updated path 
   const handlePickFolder = async (key: FolderKey) => {
     const selected = await window.electronAPI.pickFolder();
     if (selected) {
-      const updated = { ...folderPaths, [key]: selected };
-      // console.log(`updated folder path for ${key}:`, selected);
-      setFolderPaths(updated);
-      window.electronAPI.saveConfig(updated);
+      const updatedFolderPaths = { ...folderPaths, [key]: selected };
+      setFolderPaths(updatedFolderPaths);
+      window.electronAPI.saveConfig(updatedFolderPaths);
     }
   }
 
