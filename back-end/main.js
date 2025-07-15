@@ -80,30 +80,40 @@ ipcMain.handle("set-folder-paths", async (_e, paths) => {
 
 
 ////////////////////////////////////////////////////////
-ipcMain.handle("move-file", async (_e, { name, from, to, folderPaths }) => {
+// Move file(s) between folders
+// Move row(s) between SQLite databases
+// name : File_05.stl
+// from : source folder key (A, B, C)
+// to   : destination folder key (A, B, C)
+ipcMain.handle("move-file", async (_e, { name, from, to }) => {
   try {
-    const fromDir = folderPaths[from];
-    const toDir = folderPaths[to];
-    const fromPath = path.join(fromDir, name);
-    const baseName = path.parse(name).name;
-    const ext = path.extname(name);
+    const fromDir   = global.folderPaths[from];
+    const toDir     = global.folderPaths[to];
+    const fromPath  = path.join(fromDir, name);
+    const baseName  = path.parse(name).name;      // File_05
+    const ext       = path.extname(name);         // .stl
 
-    let candidateName = name;
-    let suffixIndex = 0;
+    let candidateName   = name;
+    let suffixIndex     = 0;
     const romanSuffixes = ["_I", "_II", "_III", "_IV", "_V", "_VI", "_VII", "_VIII", "_IX", "_X"];
 
     // Prevent overwriting: find unique name in destination folder
     while (fs.existsSync(path.join(toDir, candidateName))) {
-      suffixIndex += 1;
+      suffixIndex   += 1;
       candidateName = `${baseName}${romanSuffixes[suffixIndex - 1] || `_copy${suffixIndex}`}${ext}`;
     }
 
-    const destPath = path.join(toDir, candidateName);
-    fs.renameSync(fromPath, destPath);
+    const toPath  = path.join(toDir, candidateName);  // File_05_I.stl or File_05_copy2.stl
 
+    // Move the file between folders
+    fs.renameSync(fromPath, toPath);
+
+    // Move the file metadata between SQLite databases
     // Step 1: Load the metadata for the file from the "from" DB
-    const fromDB = getDB(fromDir);
-    const row = fromDB.prepare("SELECT * FROM metadata WHERE name = ?").get(name);
+    const fromDB  = getDB(fromDir);
+    // .get() for reading
+    const row     = fromDB.prepare("SELECT * FROM metadata WHERE name = ?").get(name);
+    // .run() for writing
     fromDB.prepare("DELETE FROM metadata WHERE name = ?").run(name);
     fromDB.close();
 
@@ -121,11 +131,17 @@ ipcMain.handle("move-file", async (_e, { name, from, to, folderPaths }) => {
       `);
 
       // Assign new ID if renamed
-      const newId = candidateName !== name ? `${to}-${candidateName}` : row.id;
+      const newId =
+        candidateName !== name || from !== to
+          ? `${to}-${candidateName}`
+          : row.id;
+      
+      // console.log("Moving file:", name, "from", from, "to", to);
+      // console.log("New name:", candidateName, "New ID:", newId);
 
       insert.run({
         ...row,
-        id: newId,
+        id  : newId,
         name: candidateName,
       });
 
@@ -139,14 +155,14 @@ ipcMain.handle("move-file", async (_e, { name, from, to, folderPaths }) => {
   }
 });
 
-ipcMain.handle("delete-file", async (_e, { name, folder, folderPaths }) => {
-  const folderPath = folderPaths[folder];
-  const targetPath = path.join(folderPath, name);
+ipcMain.handle("delete-file", async (_e, { name, from }) => {
+  const folderPath = global.folderPaths[from];
+  const filePath = path.join(folderPath, name);
 
   try {
     // Delete the actual file if it exists
-    if (fs.existsSync(targetPath)) {
-      fs.unlinkSync(targetPath);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
 
     // Then delete metadata from the SQLite DB
@@ -161,14 +177,14 @@ ipcMain.handle("delete-file", async (_e, { name, folder, folderPaths }) => {
   }
 });
 
-ipcMain.handle("import-file-buffer", async (_event, { name, buffer, toFolder, folderPaths }) => {
+ipcMain.handle("import-file-buffer", async (_event, { name, buffer, to}) => {
   try {
-    const destDir = folderPaths[toFolder];
-    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+    const toDir = global.folderPaths[to];
+    if (!fs.existsSync(toDir)) fs.mkdirSync(toDir, { recursive: true });
 
-    const destPath = path.join(destDir, name);
-    const data = Buffer.from(buffer);  // Reconstruct from array
-    fs.writeFileSync(destPath, data);
+    const toPath  = path.join(toDir, name);
+    const data    = Buffer.from(buffer);  // Reconstruct from array
+    fs.writeFileSync(toPath, data);
     
     return { success: true };
   } catch (err) {
@@ -202,8 +218,8 @@ function getDB(folderPath) {
 }
 
 function saveMetadataToDB(folderPath, data) {
-  const db = getDB(folderPath);
-  const insert = db.prepare(`
+  const db      = getDB(folderPath);
+  const insert  = db.prepare(`
     INSERT OR REPLACE INTO metadata (
       id, name, owner, email, class, quantity, notes,
       dateReceived, dateFinished, size
@@ -313,6 +329,7 @@ ipcMain.handle("scan-folders", async (_event) => {
 ////////////////////////////////////////////////////////
 ipcMain.handle("get-stats-db", (_event) => {
   try {
+    // Checking for existing folder and .db file
     const folderCPath = global.folderPaths?.["C"];
     if (!folderCPath) throw new Error("Folder C not set");
 
@@ -373,8 +390,6 @@ ipcMain.handle("get-stats-db", (_event) => {
     `).all();
 
     db.close();
-
-    // console.log("trend data:", trendData);
 
     return {
       success: true,

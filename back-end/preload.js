@@ -8,12 +8,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveData:         (folders) => ipcRenderer.send("save-data", folders),
 
   pickFolder:       () => ipcRenderer.invoke("pick-folder"),
-  saveConfig:       (param) => ipcRenderer.send("save-config", param),
+  saveConfig:       (updatedFolderPaths) => ipcRenderer.send("save-config", updatedFolderPaths),
   
-  
-  moveFile:         (params) => ipcRenderer.invoke("move-file", params),
-  importFileBuffer: (params) => ipcRenderer.invoke("import-file-buffer", params),
-  deleteFile:       (params) => ipcRenderer.invoke("delete-file", params),
+  moveFile:         ({ name, from, to }) => ipcRenderer.invoke("move-file", { name, from, to }),
+  deleteFile:       ({ name, folder }) => ipcRenderer.invoke("delete-file", { name, folder }),
+
+  importFileBuffer: ({ name, buffer, to }) => ipcRenderer.invoke("import-file-buffer", { name, buffer, to }),
 
   getStatsFromDB:   () => ipcRenderer.invoke("get-stats-db"),
   
