@@ -1,65 +1,16 @@
-import type { FileItem, FolderKey} from "../types/FileItem";
+import type { File, Folder} from "../types/Types";
 import { useEffect, useState } from "react";
 import { FolderUp } from "lucide-react";
 import FolderView from "../components/FolderView";
 import EditFileModal from "../components/EditFileModal";
 import { useFolders } from "../context/FolderContext";
 
-declare global {
-  interface Window {
-    electronAPI: {
-      // Run at startup
-      loadConfig:     () => Promise<Record<FolderKey, string>>;
-      setFolderPaths: (paths: Record<FolderKey, string>) => void;
-      scanFolders:    () => Promise<Record<FolderKey, FileItem[]>>;
-      saveData:       (folders: Record<FolderKey, FileItem[]>) => void;
-
-      //
-      pickFolder: () => Promise<string | null>;
-      saveConfig: (paths: Record<FolderKey, string>) => void;
-      //
-
-      //
-      moveFile: (params: {
-        name: string;
-        from: FolderKey;
-        to  : FolderKey;
-      }) => Promise<{ success: boolean; newName?: string; error?: string }>;
-
-      deleteFile: (params: {
-        name: string;
-        from: FolderKey;
-      }) => Promise<{ success: boolean; error?: string }>;
-      //
-
-      importFileBuffer?: (params: {
-        name: string;
-        buffer: number[];
-        to: FolderKey;
-      }) => Promise<{ success: boolean; error?: string }>;
-
-      getStatsFromDB: () => Promise<{
-        success:            boolean;
-        totalPrinted:       number;
-        totalPartsPrinted:  number;
-        avgPrintTime:       string;
-        topStudents:        { owner: string; count: number }[];
-        topClasses:         { class: string; count: number }[];
-        trendData:          { day: string; count: number }[];
-      }>;
-
-    };
-  }
-}
-
 function Main() {
   const [configReady, setConfigReady]   = useState(false);
-  const [folderPaths, setFolderPaths]   = useState<Record<FolderKey, string>>({A: "", B: "", C: "",});
+  const [folderPaths, setFolderPaths]   = useState<Record<Folder, string>>({A: "", B: "", C: "",});
   const { folders, setFolders }         = useFolders();
   
-
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
-  
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Step 1: Load config at startup
   useEffect(() => {
@@ -110,7 +61,7 @@ function Main() {
         reader.onload = async () => {
           // buffer - file content in binary format
           const buffer = reader.result as ArrayBuffer;
-          const to: FolderKey = "A"; 
+          const to: Folder = "A"; 
           
           // result = { success: boolean, error?: string }
           const result = await window.electronAPI.importFileBuffer?.({
@@ -143,11 +94,11 @@ function Main() {
   }, [folderPaths]);
 
   // Handle picking a folder
-  // FolderKey ("A", "B", "C")
+  // Folder ("A", "B", "C")
   // Calls the backend to open a dialog for folder picking
   // Updates the folderPaths state with the selected path
   // Saves the updated path 
-  const handlePickFolder = async (key: FolderKey) => {
+  const handlePickFolder = async (key: Folder) => {
     const selected = await window.electronAPI.pickFolder();
     if (selected) {
       const updatedFolderPaths = { ...folderPaths, [key]: selected };
@@ -158,9 +109,9 @@ function Main() {
 
   // Handle dropping a file
   const handleDropFile = async (
-    file:           FileItem,
-    from:           FolderKey,
-    to:             FolderKey,
+    file:           File,
+    from:           Folder,
+    to:             Folder,
     originalIndex?: number,
     dropIndex?:     number
   ) => {
@@ -194,7 +145,7 @@ function Main() {
       const newId   = newName !== file.name ? `${to}-${newName}` : file.id;
     
       // Create a new file item with updated name and id
-      let updatedFile: FileItem = {
+      let updatedFile: File = {
         ...file,
         name: newName,
         id: newId,
@@ -216,7 +167,7 @@ function Main() {
     }
   };
 
-  const handleDeleteFile = async (file: FileItem, from: FolderKey) => {
+  const handleDeleteFile = async (file: File, from: Folder) => {
     // result = { success: boolean, error?: string }
     const result = await window.electronAPI.deleteFile({
       name: file.name,
@@ -236,11 +187,11 @@ function Main() {
   };
 
   // Used by popup to update file metadata
-  const handleSaveMetadata = (updatedFile: FileItem) => {
+  const handleSaveMetadata = (updatedFile: File) => {
     setFolders((prev) => {
       const next = { ...prev };
       for (const key in next) {
-        const folder = key as FolderKey;
+        const folder = key as Folder;
         next[folder] = next[folder].map((f) =>
           f.id === updatedFile.id ? updatedFile : f
         );
@@ -262,12 +213,12 @@ function Main() {
       </div>
 
       <div className="flex gap-4">
-        {(["A", "B", "C"] as FolderKey[]).map((key) => {
+        {(["A", "B", "C"] as Folder[]).map((folder) => {
           const folderLabel =
-            key === "A" ? "Queue" : key === "B" ? "In Progress" : "Done";
+            folder === "A" ? "Queue" : folder === "B" ? "In Progress" : "Done";
 
           return (
-            <div key={key} className="flex-1 space-y-2">
+            <div key={folder} className="flex-1 space-y-2">
               {/* Header: Folder title and pick button */}
               <div className="flex items-center border border-gray-300 rounded-md bg-white h-20 shadow-sm">
                 {/* Left: Folder label + current path */}
@@ -276,18 +227,18 @@ function Main() {
                     {folderLabel}
                   </div>
                   <div className="text-sm text-gray-500 truncate max-w-full px-2">
-                    {folderPaths[key]?.split(/[\\/]/).pop() || "Not set"}
+                    {folderPaths[folder]?.split(/[\\/]/).pop() || "Not set"}
                   </div>
                 </div>
 
                 {/* Right: Pick folder button */}
                 <button
-                  onClick={() => handlePickFolder(key)}
+                  onClick={() => handlePickFolder(folder)}
                   className="w-20 h-full bg-blue-100 border-l border-blue-300 
                             flex items-center justify-center 
                             hover:bg-blue-200 active:bg-blue-300 
                             transition-colors duration-200 rounded-r-md"
-                  title={folderPaths[key] || "Pick folder"}
+                  title={folderPaths[folder] || "Pick folder"}
                 >
                   <FolderUp size={28} className="text-blue-600" />
                 </button>
@@ -295,13 +246,11 @@ function Main() {
 
               {/* Folder content */}
               <FolderView
-                // title={`${folderLabel} (${key})`}
-                folderId={key}
-                files={folders[key]}
-                allFiles={folders}
-                onClickFile={setSelectedFile}
-                onDropFile={(file, from, originalIndex, dropIndex) =>
-                  handleDropFile(file, from as FolderKey, key, originalIndex, dropIndex)
+                folder      ={folder}
+                files       ={folders[folder]}
+                onClickFile ={setSelectedFile}
+                onDropFile  ={(file, from, originalIndex, dropIndex) =>
+                  handleDropFile(file, from as Folder, folder, originalIndex, dropIndex)
                 }
                 onDeleteFile={handleDeleteFile}
               />

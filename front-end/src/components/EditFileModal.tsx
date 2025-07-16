@@ -1,24 +1,24 @@
 import { useState, useEffect, useMemo } from "react";
-import type { FileItem } from "../types/FileItem";
+import type { File } from "../types/Types";
 import { Pencil, X } from "lucide-react";
 import { useFolders } from "../context/FolderContext";
 
 interface EditFileModalProps {
-  file: FileItem | null;
+  file: File | null;
   onClose: () => void;
-  onSave: (updatedFile: FileItem) => void;
+  onSave: (updatedFile: File) => void;
 }
 
 export default function EditFileModal({ file, onClose, onSave }: EditFileModalProps) {
   const { folders } = useFolders();
-  const allFiles = useMemo(() => Object.values(folders).flat(), [folders]);
+  const allFiles    = useMemo(() => Object.values(folders).flat(), [folders]);
 
   // Precompute unique suggestions
-  const owners = useMemo(() => [...new Set(allFiles.map(f => f.owner).filter(Boolean))], [allFiles]);
-  const emails = useMemo(() => [...new Set(allFiles.map(f => f.email).filter(Boolean))], [allFiles]);
+  const owners  = useMemo(() => [...new Set(allFiles.map(f => f.owner).filter(Boolean))], [allFiles]);
+  const emails  = useMemo(() => [...new Set(allFiles.map(f => f.email).filter(Boolean))], [allFiles]);
   const classes = useMemo(() => [...new Set(allFiles.map(f => f.class).filter(Boolean))], [allFiles]);
 
-  const [form, setForm] = useState<FileItem | null>(file);
+  const [form, setForm] = useState<File | null>(file);
 
   useEffect(() => {
     setForm(file);
@@ -26,7 +26,7 @@ export default function EditFileModal({ file, onClose, onSave }: EditFileModalPr
 
   if (!form) return null;
 
-  const handleChange = (key: keyof FileItem, value: string | number) => {
+  const handleChange = (key: keyof File, value: string | number) => {
     setForm(prev => prev ? { ...prev, [key]: value } : prev);
   };
 

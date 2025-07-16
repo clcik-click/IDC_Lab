@@ -11,7 +11,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveConfig:       (updatedFolderPaths) => ipcRenderer.send("save-config", updatedFolderPaths),
   
   moveFile:         ({ name, from, to }) => ipcRenderer.invoke("move-file", { name, from, to }),
-  deleteFile:       ({ name, folder }) => ipcRenderer.invoke("delete-file", { name, folder }),
+  deleteFile:       ({ name, from }) => ipcRenderer.invoke("delete-file", { name, from }),
 
   importFileBuffer: ({ name, buffer, to }) => ipcRenderer.invoke("import-file-buffer", { name, buffer, to }),
 
