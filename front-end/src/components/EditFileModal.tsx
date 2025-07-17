@@ -1,19 +1,27 @@
 import { useState, useEffect, useMemo } from "react";
-import type { File } from "../types/Types";
-import { Pencil, X } from "lucide-react";
+import type { File }  from "../types/Types";
+import { Pencil, X }  from "lucide-react";
 import { useFolders } from "../context/FolderContext";
 
 interface EditFileModalProps {
-  file: File | null;
-  onClose: () => void;
-  onSave: (updatedFile: File) => void;
+  file:     File | null;
+  onClose:  () => void;
+  onSave:   (updatedFile: File) => void;
 }
 
 export default function EditFileModal({ file, onClose, onSave }: EditFileModalProps) {
   const { folders } = useFolders();
+
+  // update when const folders changes
+  // allFiles = [File1, File2, File3,...]
   const allFiles    = useMemo(() => Object.values(folders).flat(), [folders]);
 
-  // Precompute unique suggestions
+ 
+  // allFiles.map(f => f.owner) ~ pulls the owner filed from every file
+  // .filter(Boolean)           ~ removes falsy values (null, undefined, "", false, etc)
+  // Set                        ~ removes duplication
+  // [...new Set(...)]          ~ converts set to array
+  // useMemo(..., [allFiles])   ~ re-runs when "allFiles" changes
   const owners  = useMemo(() => [...new Set(allFiles.map(f => f.owner).filter(Boolean))], [allFiles]);
   const emails  = useMemo(() => [...new Set(allFiles.map(f => f.email).filter(Boolean))], [allFiles]);
   const classes = useMemo(() => [...new Set(allFiles.map(f => f.class).filter(Boolean))], [allFiles]);

@@ -1,6 +1,6 @@
 import type { File, Folder } from "../types/Types";
 import { useFolders } from "../context/FolderContext";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 
 interface FolderViewProps {
