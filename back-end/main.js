@@ -408,3 +408,70 @@ ipcMain.handle("get-stats-db", (_event) => {
 
 
 
+
+// Define path to config-data/notes.db
+const notesDBPath = path.join(__dirname, "../config-data/notes.db");
+
+// Make sure the folder exists
+fs.mkdirSync(path.dirname(notesDBPath), { recursive: true });
+
+// This line automatically creates the DB file if it doesn't exist
+const notesDB = new Database(notesDBPath);
+
+// Create table if needed
+notesDB.prepare(`
+  CREATE TABLE IF NOT EXISTS notes (
+    id          TEXT PRIMARY KEY,
+    author      TEXT NOT NULL,
+    recipient   TEXT NOT NULL,
+    message     TEXT NOT NULL,
+    dateCreated TEXT NOT NULL
+  )
+`).run();
+
+
+ipcMain.handle("get-notes-from-db", () => {
+  const stmt = notesDB.prepare("SELECT * FROM notes ORDER BY dateCreated DESC");
+  return stmt.all();
+});
+
+ipcMain.handle("save-note-to-db", (event, note) => {
+  try {
+    const stmt = notesDB.prepare(`
+      INSERT OR REPLACE INTO notes (id, author, recipient, message, dateCreated)
+      VALUES (@id, @author, @recipient, @message, @dateCreated)
+    `);
+    stmt.run(note);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("delete-note-from-db", (event, id) => {
+  try {
+    const stmt = notesDB.prepare("DELETE FROM notes WHERE id = ?");
+    stmt.run(id);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("update-note-in-db", (event, note) => {
+  try {
+    const stmt = notesDB.prepare(`
+      UPDATE notes SET 
+        author = @author,
+        recipient = @recipient,
+        message = @message,
+        dateCreated = @dateCreated
+      WHERE id = @id
+    `);
+    stmt.run(note);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+

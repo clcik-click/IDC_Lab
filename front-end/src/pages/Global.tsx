@@ -1,9 +1,10 @@
-import type { File, Folder } from "../types/Types";
+import type { File, Folder, Note } from "../types/Types";
 
 //
 declare global {
   interface Window {
     electronAPI: {
+      // Main n Dashboard
       // Run at startup
       loadConfig:     () => Promise<Record<Folder, string>>;
       setFolderPaths: (paths: Record<Folder, string>) => void;
@@ -44,6 +45,20 @@ declare global {
         trendData:          { day: string; count: number }[];
       }>;
 
+      // Note
+      getNotesFromDB:   () => Promise<Note[]>;
+      saveNoteToDB:     (note: Note) => Promise<{ 
+        success: boolean; 
+        error?: string 
+      }>;
+      deleteNoteFromDB: (id: string) => Promise<{ 
+        success: boolean; 
+        error?: string 
+      }>;
+      updateNoteInDB:   (note: Note) => Promise<{ 
+        success: boolean; 
+        error?: string 
+      }>;
     };
   }
 }

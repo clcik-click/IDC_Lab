@@ -17,3 +17,13 @@ export interface File {
   dateFinished?: string;    // ISO string
 }
 
+
+export interface Note {
+  id: string;                   
+  author: string; 
+  recipient: string;            
+  message: string;             
+  dateCreated: string;          
+               
+  folderRef?: "A" | "B" | "C";  // If tied to a queue/in-progress/done context
+}

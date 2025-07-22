@@ -2,6 +2,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  // ... other APIs
   loadConfig:       () => ipcRenderer.invoke("load-config"),
   setFolderPaths:   (folderPaths) => ipcRenderer.invoke("set-folder-paths", folderPaths),
   scanFolders:      () => ipcRenderer.invoke("scan-folders"),
@@ -16,6 +17,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   importFileBuffer: ({ name, buffer, to }) => ipcRenderer.invoke("import-file-buffer", { name, buffer, to }),
 
   getStatsFromDB:   () => ipcRenderer.invoke("get-stats-db"),
+
+  // Notes API
+  getNotesFromDB:   () => ipcRenderer.invoke("get-notes-from-db"),
+  saveNoteToDB:     (note) => ipcRenderer.invoke("save-note-to-db", note),
+  deleteNoteFromDB: (id) => ipcRenderer.invoke("delete-note-from-db", id),
+  updateNoteInDB:   (note) => ipcRenderer.invoke("update-note-in-db", note),
   
 });
   
+
