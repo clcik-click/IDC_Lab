@@ -25,6 +25,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1000,
     height: 700,
+    icon: path.join(__dirname, "../assets", "App.ico"),
     webPreferences: {
       // Isolate front-end from back-end
       contextIsolation: true,

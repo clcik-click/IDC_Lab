@@ -44,7 +44,7 @@ function Notes() {
         {/* Header */}
         <div className="flex items-center border border-gray-300 rounded-md bg-white h-20 shadow-sm">
           <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="text-xl font-semibold text-gray-800">📝 Notes</div>
+            <div className="text-xl font-semibold text-gray-800">Notes</div>
             <div className="text-sm text-gray-500">All lab messages</div>
           </div>
 

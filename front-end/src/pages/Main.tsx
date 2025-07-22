@@ -201,24 +201,76 @@ function Main() {
     setSelectedFile(null);
   }
 
+const handleFiles = (fileList: FileList | null) => {
+  if (!fileList) return;
+
+  const files = Array.from(fileList).filter((file) =>
+    file.name.toLowerCase().endsWith(".stl")
+  );
+
+  for (const file of files) {
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      const buffer = reader.result as ArrayBuffer;
+      const to: Folder = "A";
+
+      const result = await window.electronAPI.importFileBuffer?.({
+        name: file.name,
+        buffer: Array.from(new Uint8Array(buffer)),
+        to,
+      });
+
+      if (result?.success) {
+        window.electronAPI.scanFolders().then(setFolders);
+      } else {
+        alert(`❌ Failed to import ${file.name}: ` + result?.error);
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+};
+
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-6">
 
-      {/* Drop Area */}
-      <div
-        id="drop-area"
-        className="text-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center"
-      >
-        Drop files here
-      </div>
+<div className="flex items-center gap-6 w-full">
+  {/* Drop Area */}
+  <div
+    id="drop-area"
+    className="flex-1 h-32 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center"
+  >
+    Drop files here
+  </div>
 
-      <div className="flex gap-4">
+  {/* Insert Button */}
+  <button
+    onClick={() => document.getElementById("file-picker")?.click()}
+    className="h-32 px-4 py-2 border-dashed border-gray-300 rounded-lg bg-blue-300 text-blue-600 hover:bg-blue-200 transition"
+  >
+    Insert File(s)
+  </button>
+
+  {/* Hidden File Input */}
+  <input
+    type="file"
+    id="file-picker"
+    accept=".stl"
+    multiple
+    className="hidden"
+    onChange={(e) => handleFiles(e.target.files)} // Make sure handleFiles is in scope
+  />
+</div>
+
+
+      <div className="flex gap-6">
         {(["A", "B", "C"] as Folder[]).map((folder) => {
           const folderLabel =
             folder === "A" ? "Queue" : folder === "B" ? "In Progress" : "Done";
 
           return (
-            <div key={folder} className="flex-1 space-y-2">
+            <div key={folder} className="flex-1 space-y-6">
               {/* Header: Folder title and pick button */}
               <div className="flex items-center border border-gray-300 rounded-md bg-white h-20 shadow-sm">
                 {/* Left: Folder label + current path */}

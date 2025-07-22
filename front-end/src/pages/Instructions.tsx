@@ -12,7 +12,7 @@ function Instructions() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 pb-24 pt-6 space-y-6 text-[--foreground2]">
-      <h1 className="text-3xl font-bold text-blue-600 text-center">📝 How to Use the App</h1>
+      <h1 className="text-3xl font-bold text-gray-800 text-center">How to Use the App</h1>
       <p className="text-gray-500 text-sm text-center">
         Learn how to set up folders, manage files, and monitor print activity.
       </p>
@@ -24,28 +24,25 @@ function Instructions() {
             <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
             <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
             <li>Drag between folders to reflect progress.</li>
-                        <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
+            <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
+            <li>Drag between folders to reflect progress.</li>                  
             <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
             <li>Drag between folders to reflect progress.</li>
-                        <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
+            <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
             <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
             <li>Drag between folders to reflect progress.</li>
-                        <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
+            <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
             <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
             <li>Drag between folders to reflect progress.</li>
-                        <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
+            <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
             <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
             <li>Drag between folders to reflect progress.</li>
-                        <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
+            <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
             <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
             <li>Drag between folders to reflect progress.</li>
-                        <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
+            <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
             <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
             <li>Drag between folders to reflect progress.</li>
-                        <li>Click <strong>Select Folder A/B/C</strong> to assign folders.</li>
-            <li>Only <code className="bg-blue-100 px-1 rounded text-sm">.stl</code> files are detected.</li>
-            <li>Drag between folders to reflect progress.</li>
-            
           </ul>
         </CollapsibleSection>
       </div>

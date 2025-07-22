@@ -30,22 +30,22 @@ function NoteView({ notes, onClickNote, onDeleteNote }: NoteViewProps) {
             </button>
 
             {/* Top Row: Label + Date */}
-            <div className="flex text-xs text-gray-500 mb-1">
+            <div className="flex text-s text-gray-800 mb-1">
               <span>{new Date(note.dateCreated).toLocaleDateString()}</span>
             </div>
 
             {/* Note Fields */}
             <div className="text-sm text-[var(--foreground2)] space-y-1">
               <div>
-                <span className="font-semibold text-[--muted]">From: </span>
+                <span className="font-semibold text-blue-600">From: </span>
                 {note.author || "Unknown"}
               </div>
               <div>
-                <span className="font-semibold text-[--muted]">To: </span>
+                <span className="font-semibold text-blue-600">To: </span>
                 {note.recipient}
               </div>
               <div>
-                <span className="font-semibold text-[--muted]">Message: </span>
+                <span className="font-semibold text-blue-600">Message: </span>
                 {note.message}
               </div>
             </div>
