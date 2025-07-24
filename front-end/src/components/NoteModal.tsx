@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Note } from "../types/Types";
+import { Pencil }  from "lucide-react";
 
 interface NoteModalProps {
   note?: Note; // if undefined, it's a new note
@@ -40,8 +41,8 @@ function NoteModal({ note, onClose, onSave }: NoteModalProps) {
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        <h2 className="text-lg font-semibold mb-4">
-          {note ? "Edit Note" : "New Note"}
+        <h2 className="text-2xl font-semibold flex items-center gap-2">
+           <Pencil size={20} /> {note ? "Edit Note" : "New Note"}
         </h2>
 
         {/* From */}
@@ -69,9 +70,12 @@ function NoteModal({ note, onClose, onSave }: NoteModalProps) {
         />
 
         {/* Message */}
-        <label className="block text-sm mb-1 text-gray-600 font-medium">
-          Message
-        </label>
+        <div className="flex justify-between items-center mb-1">
+          <label className="text-sm text-gray-600 font-medium">Message</label>
+          <div className="text-xs text-gray-500">
+            {message.length}/140
+          </div>
+        </div>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -80,9 +84,7 @@ function NoteModal({ note, onClose, onSave }: NoteModalProps) {
           className="w-full border rounded p-2 resize-none"
           placeholder="Enter message (max 140 characters)"
         />
-        <div className="text-right text-xs text-gray-500 mb-4">
-          {message.length}/140
-        </div>
+
 
         {/* Actions */}
         <div className="flex justify-end gap-2">

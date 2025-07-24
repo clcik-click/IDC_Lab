@@ -120,13 +120,25 @@ ipcMain.handle("move-file", async (_e, { name, from, to }) => {
 
     if (row) {
       // Step 2: Update metadata for new folder and name
-      const toDB = getDB(toDir);
-      const insert = toDB.prepare(`
+      const toDB    = getDB(toDir);
+
+      // let allRows = toDB.prepare("SELECT * FROM metadata").all();
+      // console.log("Here 1:", allRows);
+      
+      const insert  = toDB.prepare(`
         INSERT OR REPLACE INTO metadata (
           id, name, owner, email, class, quantity, notes,
+
+          printer1, printer2, printer3, printer4, printer5,
+          material1, material2, material3, material4, material5,
+
           dateReceived, dateFinished, size
         ) VALUES (
           @id, @name, @owner, @email, @class, @quantity, @notes,
+
+          @printer1, @printer2, @printer3, @printer4, @printer5,
+          @material1, @material2, @material3, @material4, @material5,
+
           @dateReceived, @dateFinished, @size
         )
       `);
@@ -145,6 +157,9 @@ ipcMain.handle("move-file", async (_e, { name, from, to }) => {
         id  : newId,
         name: candidateName,
       });
+
+      // allRows = toDB.prepare("SELECT * FROM metadata").all();
+      // console.log("Here 2:", allRows);
 
       toDB.close();
     }
@@ -198,42 +213,68 @@ ipcMain.handle("import-file-buffer", async (_event, { name, buffer, to}) => {
 
 ////////////////////////////////////////////////////////
 function getDB(folderPath) {
-  const dbPath  = path.join(folderPath, "metadata.db");
-  const db      = new Database(dbPath);
+  const dbPath = path.join(folderPath, "metadata.db");
+  const db     = new Database(dbPath);
   db.pragma("journal_mode = WAL");
+
   db.prepare(`
     CREATE TABLE IF NOT EXISTS metadata (
-      id TEXT PRIMARY KEY,
-      name TEXT,
-      owner TEXT,
-      email TEXT,
-      class TEXT,
-      quantity INTEGER,
-      notes TEXT,
-      dateReceived TEXT,
-      dateFinished TEXT,
-      size INTEGER
+      id            TEXT PRIMARY KEY,
+      name          TEXT,
+      owner         TEXT,
+      email         TEXT,
+      class         TEXT,
+      quantity      INTEGER,
+      notes         TEXT,
+
+      printer1      TEXT,
+      printer2      TEXT,
+      printer3      TEXT,
+      printer4      TEXT,
+      printer5      TEXT,
+
+      material1     TEXT,
+      material2     TEXT,
+      material3     TEXT,
+      material4     TEXT,
+      material5     TEXT,
+
+      dateReceived  TEXT,
+      dateFinished  TEXT,
+      size          INTEGER
     )
   `).run();
+
   return db;
 }
 
 function saveMetadataToDB(folderPath, data) {
-  const db      = getDB(folderPath);
-  const insert  = db.prepare(`
+  const db = getDB(folderPath);
+
+  const insert = db.prepare(`
     INSERT OR REPLACE INTO metadata (
       id, name, owner, email, class, quantity, notes,
+
+      printer1, printer2, printer3, printer4, printer5,
+      material1, material2, material3, material4, material5,
+
       dateReceived, dateFinished, size
     ) VALUES (
       @id, @name, @owner, @email, @class, @quantity, @notes,
+
+      @printer1, @printer2, @printer3, @printer4, @printer5,
+      @material1, @material2, @material3, @material4, @material5,
+
       @dateReceived, @dateFinished, @size
     )
   `);
+
   const tx = db.transaction((items) => {
     for (const item of items) {
       insert.run(item);
     }
   });
+
   tx(data);
   db.close();
 }
@@ -288,13 +329,9 @@ ipcMain.handle("scan-folders", async (_event) => {
   const result = { A: [], B: [], C: [] };
 
   for (const key of ["A", "B", "C"]) {
-    const folder    = global.folderPaths[key];
-
-    // files ~ names of .stl files in the folder and their full paths
-    const files     = readSTLFilesFromFolder(folder);
-
-    // 
-    const metadata  = loadMetadataFromDB(folder);
+    const folder   = global.folderPaths[key];
+    const files    = readSTLFilesFromFolder(folder);
+    const metadata = loadMetadataFromDB(folder);
 
     result[key] = files.map(({ name, fullPath }) => {
       let stats = null;
@@ -304,19 +341,33 @@ ipcMain.handle("scan-folders", async (_event) => {
         console.warn("⚠️ Failed to stat file:", fullPath);
       }
 
+      // Try to find matching metadata by filename
       const existing = metadata.find((f) => f.name === name);
       return (
         existing ?? {
           id: `${key}-${name}`,
           name,
-          owner: "",
-          email: "",
-          class: "",
-          quantity: 1,
-          notes: "",
+          owner:        "",
+          email:        "",
+          class:        "",
+          quantity:     1,
+          notes:        "",
+
+          printer1:     "",
+          printer2:     "",
+          printer3:     "",
+          printer4:     "",
+          printer5:     "",
+
+          material1:    "",
+          material2:    "",
+          material3:    "",
+          material4:    "",
+          material5:    "",
+
           dateReceived: stats?.mtime?.toISOString() || "",
           dateFinished: "",
-          size: stats?.size || 0,
+          size:         stats?.size || 0,
         }
       );
     });
@@ -408,8 +459,7 @@ ipcMain.handle("get-stats-db", (_event) => {
 });
 
 
-
-
+////////////////////////////////////////////////////////
 // Define path to config-data/notes.db
 const notesDBPath = path.join(__dirname, "../config-data/notes.db");
 

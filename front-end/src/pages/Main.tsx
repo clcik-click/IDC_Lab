@@ -1,8 +1,8 @@
 import type { File, Folder} from "../types/Types";
 import { useEffect, useState } from "react";
 import { FolderUp } from "lucide-react";
-import FolderView from "../components/FolderView";
-import EditFileModal from "../components/EditFileModal";
+import FileView from "../components/FileView";
+import FileModal from "../components/FileModal";
 import { useFolders } from "../context/FolderContext";
 
 function Main() {
@@ -35,12 +35,14 @@ function Main() {
 
   // Step 3: Save updated metadata when folders change
   useEffect(() => {
-    // Check if all folders are empty
-    const areEmpty = Object.values(folders).every(arr => arr.length === 0);
+    const timeoutRef = setTimeout(() => {
+      const areEmpty = Object.values(folders).every(arr => arr.length === 0);
+      if (!areEmpty) {
+        window.electronAPI.saveData(folders);
+      }
+    }, 300);
 
-    if (!areEmpty) {
-      window.electronAPI.saveData(folders);
-    }
+    return () => clearTimeout(timeoutRef);
   }, [folders]);
 
   // Handle file drop in the drop area
@@ -139,11 +141,14 @@ function Main() {
       to
     });
 
+    console.log(result);
+
+
     if (result.success) {
       // If the file was renamed, update the name and id
       const newName = result.newName ?? file.name;
-      const newId   = newName !== file.name ? `${to}-${newName}` : file.id;
-    
+      const newId   = `${to}-${newName}`;
+
       // Create a new file item with updated name and id
       let updatedFile: File = {
         ...file,
@@ -164,6 +169,8 @@ function Main() {
         [from]: prev[from].filter((f) => f.id !== file.id),
         [to]: [updatedFile, ...prev[to]],
       }));
+
+      console.log("folders updated");
     }
   };
 
@@ -297,7 +304,7 @@ const handleFiles = (fileList: FileList | null) => {
               </div>
 
               {/* Folder content */}
-              <FolderView
+              <FileView
                 folder      ={folder}
                 files       ={folders[folder]}
                 onClickFile ={setSelectedFile}
@@ -312,7 +319,7 @@ const handleFiles = (fileList: FileList | null) => {
       </div>
 
       {/* Metadata modal */}
-      <EditFileModal
+      <FileModal
         file    ={selectedFile}
         onClose ={() => setSelectedFile(null)}
         onSave  ={handleSaveMetadata}

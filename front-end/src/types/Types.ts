@@ -5,18 +5,31 @@ export type Folder = "A" | "B" | "C";
 //
 //
 export interface File {
-  id:           string;
-  name:         string;
-  owner:        string;
+  id:           string;     // unique id
+  name:         string;     // file name
+  owner:        string;     // student name
+  quantity:     number;
+
   email?:       string;
   class?:       string;
-  quantity?:    number;
   notes?:       string;
+
+  printer1:     string;
+  printer2?:    string;
+  printer3?:    string;
+  printer4?:    string;
+  printer5?:    string;
+
+  material1:    string;
+  material2?:   string;
+  material3?:   string;
+  material4?:   string;
+  material5?:   string;
+
   dateReceived: string;     // ISO string
   size: number;             // in bytes
   dateFinished?: string;    // ISO string
 }
-
 
 export interface Note {
   id: string;                   

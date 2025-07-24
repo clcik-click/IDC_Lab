@@ -3,7 +3,7 @@ import { useFolders } from "../context/FolderContext";
 import { useState } from "react";
 import { X } from "lucide-react";
 
-interface FolderViewProps {
+interface FileViewProps {
   folder: Folder;
   files: File[];
   onDropFile: (
@@ -16,13 +16,13 @@ interface FolderViewProps {
   onDeleteFile: (file: File, from: Folder) => void;
 }
 
-export default function FolderView({
+export default function FileView({
   folder,
   files,
   onDropFile,
   onClickFile,
   onDeleteFile,
-}: FolderViewProps) {
+}: FileViewProps) {
 
   // global folders { A: [], B: [], C: [] }
   const { folders }                     = useFolders();
@@ -95,6 +95,7 @@ export default function FolderView({
       droppedFiles.forEach((file: File, i: number) => {
         const originalIndex = indices?.[i] ?? undefined;
         const dropIndex     = hoveredIndex ?? files.length + i;
+        console.log(file.name);
         onDropFile(file, from, originalIndex, dropIndex);
       });
     }
