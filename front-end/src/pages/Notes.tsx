@@ -40,7 +40,7 @@ function Notes() {
 
   return (
     <div className="p-6 flex flex-col items-center min-h-screen bg-[--surface] text-[var(--foreground2)]">
-      <div className="w-full max-w-2xl space-y-6">
+      <div className="w-full max-w-4xl space-y-6">
         {/* Header */}
         <div className="flex items-center border border-gray-300 rounded-md bg-white h-20 shadow-sm">
           <div className="flex-1 flex flex-col items-center justify-center">

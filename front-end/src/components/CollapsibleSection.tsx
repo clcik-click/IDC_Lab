@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 interface CollapsibleSectionProps {
-  title: string;
+  title: React.ReactNode;         // <-- changed from string to React.ReactNode
   children: React.ReactNode;
 }
 
@@ -12,9 +12,19 @@ function CollapsibleSection({ title, children }: CollapsibleSectionProps) {
     <div className="border-l-4 border-blue-200 pl-4 bg-blue-50 rounded-md p-4 space-y-2">
       <button
         onClick={() => setOpen(!open)}
-        className="text-blue-600 font-medium hover:underline"
+        className="text-blue-600 font-medium hover:underline inline-flex items-center gap-2"
       >
-        {open ? `Hide ${title}` : `Read More: ${title}`}
+        {open ? (
+          <>
+            {title}
+            <span> ~ Hide</span>
+          </>
+        ) : (
+          <> 
+            {title}
+            <span> ~ Read More </span>
+          </>
+        )}
       </button>
 
       <div
@@ -29,3 +39,4 @@ function CollapsibleSection({ title, children }: CollapsibleSectionProps) {
 }
 
 export default CollapsibleSection;
+
