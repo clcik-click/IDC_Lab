@@ -16,6 +16,8 @@ const fs            = require("fs");
 global.folderPaths  = { A: "", B: "", C: "" };
 
 // app.getPath("userData") gives a default location for storing app data
+
+// Development
 const configPath    = path.join(__dirname, "../config-data/config.json");
 
 // Needs double checking before integrating into dist-app
@@ -46,6 +48,43 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../front-end/dist/index.html"));
   }
 }
+
+// Production
+// const configPath  = path.join(app.getPath("userData"), "config.json");
+
+// function createWindow() {
+//   const isDev = process.env.NODE_ENV === "development";
+
+//   const win = new BrowserWindow({
+//     width: 1000,
+//     height: 700,
+//     webPreferences: {
+//       contextIsolation: true,
+//       preload: path.join(__dirname, "preload.js"),
+//       sandbox: false,
+//       nodeIntegration: false,
+//       devTools: true,
+//     },
+//   });
+
+//   if (isDev) {
+//     console.log("🔧 Running in development mode");
+//     win.loadURL("http://localhost:5173");
+//     win.webContents.openDevTools();
+//   } else {
+//     const htmlPath = path.join(__dirname, "../renderer/index.html");
+//     console.log("🚀 Running in production mode");
+//     console.log("🧩 Resolved HTML path:", htmlPath);
+
+//     const fs = require("fs");
+//     if (!fs.existsSync(htmlPath)) {
+//       console.error("❌ index.html not found at:", htmlPath);
+//     } else {
+//       console.log("✅ index.html found");
+//       win.loadFile(htmlPath);
+//     }
+//   }
+// }
 
 app.whenReady().then(createWindow);
 

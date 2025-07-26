@@ -59,7 +59,7 @@ export default function FileModal({ file, onClose, onSave }: FileModalProps) {
             return (
               <select
                 key       ={key}
-                value     ={form[key] ?? ""}
+                value     ={(form![key] as string | number) ?? ""}
                 onChange  ={(e) => handleChange(key, e.target.value)}
                 className ="w-24 border rounded px-1 py-1 text-sm"
               >

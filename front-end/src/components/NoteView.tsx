@@ -11,11 +11,11 @@ function NoteView({ notes, onClickNote, onDeleteNote }: NoteViewProps) {
   return (
     <div className="flex-1 min-w-[200px] p-4 border rounded bg-gray-100 h-[80vh] overflow-scroll border-gray-300 transition-colors duration-200">
       <ul className="space-y-2">
-        {notes.map((note, i) => (
+        {notes.map((note) => (
           <li
-            key={note.id}
-            onClick={() => onClickNote(note)}
-            className={`relative p-3 rounded-md text-sm cursor-pointer transition-all duration-200 shadow-sm bg-white hover:bg-gray-50 active:scale-[0.98]`}
+            key       ={note.id}
+            onClick   ={() => onClickNote(note)}
+            className ={`relative p-3 rounded-md text-sm cursor-pointer transition-all duration-200 shadow-sm bg-white hover:bg-gray-50 active:scale-[0.98]`}
           >
             {/* Delete Button */}
             <button

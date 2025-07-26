@@ -8,7 +8,7 @@ function Instructions() {
   const manageRef = useRef<HTMLDivElement>(null);
   const statsRef  = useRef<HTMLDivElement>(null);
 
-  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
+  const scrollTo = (ref: React.RefObject<HTMLDivElement | null >) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
