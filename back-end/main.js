@@ -16,75 +16,45 @@ const fs            = require("fs");
 global.folderPaths  = { A: "", B: "", C: "" };
 
 // app.getPath("userData") gives a default location for storing app data
+const isDev = !app.isPackaged;
+const configPath = isDev
+  ? path.join(__dirname, "../config-data/config.json")
+  : path.join(app.getPath("userData"), "config.json");
 
-// Development
-const configPath    = path.join(__dirname, "../config-data/config.json");
-
-// Needs double checking before integrating into dist-app
 function createWindow() {
-  const isDev = !app.isPackaged;
-
   const win = new BrowserWindow({
     width: 1000,
     height: 700,
-    icon: path.join(__dirname, "../assets", "App.ico"),
+    icon: path.join(__dirname, "../dist-app/assets/App.ico"), // make sure App.ico exists
+    title: "3DPrintManager",
     webPreferences: {
-      // Isolate front-end from back-end
       contextIsolation: true,
-      // Enable IPC communication
       preload: path.join(__dirname, "preload.js"),
-      devTools: isDev, // only open devtools in dev mode
+      devTools: isDev,
     },
   });
 
   if (isDev) {
     console.log("🔧 Running in development mode");
     win.loadURL("http://localhost:5173");
-
-    // Open dev tools ~ inspect elements, console, etc.
     win.webContents.openDevTools();
   } else {
     console.log("🚀 Running in production mode");
-    win.loadFile(path.join(__dirname, "../front-end/dist/index.html"));
+    win.loadFile(path.join(__dirname, "../dist-app/index.html")); // ✅ FIXED
   }
 }
 
-// Production
-// const configPath  = path.join(app.getPath("userData"), "config.json");
+app.whenReady().then(() => {
+  createWindow();
 
-// function createWindow() {
-//   const isDev = process.env.NODE_ENV === "development";
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
 
-//   const win = new BrowserWindow({
-//     width: 1000,
-//     height: 700,
-//     webPreferences: {
-//       contextIsolation: true,
-//       preload: path.join(__dirname, "preload.js"),
-//       sandbox: false,
-//       nodeIntegration: false,
-//       devTools: true,
-//     },
-//   });
-
-//   if (isDev) {
-//     console.log("🔧 Running in development mode");
-//     win.loadURL("http://localhost:5173");
-//     win.webContents.openDevTools();
-//   } else {
-//     const htmlPath = path.join(__dirname, "../renderer/index.html");
-//     console.log("🚀 Running in production mode");
-//     console.log("🧩 Resolved HTML path:", htmlPath);
-
-//     const fs = require("fs");
-//     if (!fs.existsSync(htmlPath)) {
-//       console.error("❌ index.html not found at:", htmlPath);
-//     } else {
-//       console.log("✅ index.html found");
-//       win.loadFile(htmlPath);
-//     }
-//   }
-// }
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
 
 app.whenReady().then(createWindow);
 
@@ -500,13 +470,11 @@ ipcMain.handle("get-stats-db", (_event) => {
 
 ////////////////////////////////////////////////////////
 // Define path to config-data/notes.db
-const notesDBPath = path.join(__dirname, "../config-data/notes.db");
-
-// Make sure the folder exists
+const userDataDir = app.getPath("userData");
+const notesDBPath = path.join(userDataDir, "notes.db");
 fs.mkdirSync(path.dirname(notesDBPath), { recursive: true });
-
-// This line automatically creates the DB file if it doesn't exist
 const notesDB = new Database(notesDBPath);
+
 
 // Create table if needed
 notesDB.prepare(`

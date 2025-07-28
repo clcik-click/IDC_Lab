@@ -3,3 +3,6 @@ dist
 pics
 dist-app
 dist-app.zip
+release
+.electron-cache
+build

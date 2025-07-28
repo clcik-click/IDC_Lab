@@ -6,40 +6,69 @@
   "main": "back-end/main.js",
   "scripts": {
     "dev": "concurrently \"npm --prefix front-end run dev\" \"wait-on http://localhost:5173 && electron .\"",
+
     "build": "npm --prefix front-end run build",
+
     "start": "electron .",
-    "dist": "set ELECTRON_BUILDER_DISABLE_CODE_SIGNING=true && npm run build && electron-builder --win"
+
+    "dist": "set ELECTRON_BUILDER_DISABLE_CODE_SIGNING=true && npm run build && electron-builder --win",
+
+    "postinstall": "electron-builder install-app-deps"
   },
+
   "build": {
-    "appId": "com.example.myapp",
+    "appId": "com.hoan.idclab",
     "productName": "3DPrintManager",
-    "files": [
-      "back-end/**/*",
-      "front-end/dist/**/*",
-      "node_modules/**/*",
-      "package.json"
-    ],
+
     "directories": {
       "output": "release"
     },
-    "extraResources": [],
+
+    "files": [
+      "back-end/**/*",
+      "dist-app/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+
+    "extraResources": [
+      {
+        "from": "config-data",
+        "to": "config-data"
+      }
+    ],
+
     "asar": true,
+    "asarUnpack": [
+      "**/better-sqlite3/**/*"
+    ],
+
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
     },
+
     "mac": {
-      "target": [],
-      "sign": false
-    }
+      "target": []
+    },
+    "linux": {
+      "target": []
+    },
+
+    "publish": null,
+
+    "npmRebuild": false,
+    "nodeGypRebuild": false
   },
+
   "devDependencies": {
     "concurrently": "^9.1.2",
     "electron": "^36.5.0",
-    "electron-builder": "^24.14.1",
+    "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
     "wait-on": "^8.0.3"
   },
+
   "dependencies": {
     "better-sqlite3": "^12.2.0",
     "chart.js": "^4.5.0",
